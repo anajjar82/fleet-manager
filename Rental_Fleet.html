@@ -1,0 +1,816 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Fleet Manager</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#f0f6ff;--bg2:#e8f2ff;--surface:#fff;--surface2:#f5f9ff;
+  --border:#c8ddf5;--border2:#a8c8f0;
+  --blue:#1a6fdb;--blue2:#2d8bff;--blue-light:#dbeeff;--blue-pale:#eef6ff;
+  --green:#059669;--green-light:#d1fae5;
+  --red:#dc2626;--red-light:#fee2e2;
+  --amber:#d97706;--amber-light:#fef3c7;
+  --orange:#ea580c;--orange-light:#ffedd5;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'Inter',sans-serif;background:var(--bg);color:#000;min-height:100vh;font-size:14px;}
+
+/* HEADER */
+.hdr{background:linear-gradient(135deg,#1255b8,#1a6fdb 60%,#2d8bff);color:#fff;padding:0 1.5rem;height:62px;display:flex;align-items:center;justify-content:space-between;box-shadow:0 2px 12px rgba(26,111,219,.3);position:sticky;top:0;z-index:200;}
+.brand{display:flex;align-items:center;gap:10px;}
+.brand-icon{width:36px;height:36px;background:rgba(255,255,255,.18);border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:1.2rem;border:1px solid rgba(255,255,255,.25);}
+.brand-name{font-size:.98rem;font-weight:800;letter-spacing:-.02em;}
+.brand-sub{font-size:.6rem;opacity:.85;font-family:'JetBrains Mono',monospace;letter-spacing:.06em;}
+.hdr-right{display:flex;align-items:center;gap:.5rem;}
+
+/* STATS */
+.stats{display:grid;grid-template-columns:repeat(4,1fr);background:var(--surface);border-bottom:2px solid var(--border);}
+.stat{padding:.85rem 1.25rem;border-right:1px solid var(--border);position:relative;overflow:hidden;transition:background .15s;}
+.stat:last-child{border-right:none;}
+.stat:hover{background:var(--blue-pale);}
+.stat-lbl{font-size:.6rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#000;margin-bottom:3px;}
+.stat-val{font-size:1.7rem;font-weight:900;line-height:1;font-family:'JetBrains Mono',monospace;}
+.stat-bar{position:absolute;bottom:0;left:0;height:3px;border-radius:0 2px 2px 0;transition:width .6s ease;}
+.stat.tot  .stat-val{color:var(--blue);}  .stat.tot  .stat-bar{background:var(--blue);}
+.stat.asgn .stat-val{color:var(--green);} .stat.asgn .stat-bar{background:var(--green);}
+.stat.idle .stat-val{color:var(--orange);}.stat.idle .stat-bar{background:var(--orange);}
+.stat.proj .stat-val{color:#7c3aed;}      .stat.proj .stat-bar{background:#7c3aed;width:100%;}
+
+/* TOOLBAR */
+.toolbar{padding:.7rem 1.5rem;display:flex;gap:.6rem;align-items:center;flex-wrap:wrap;background:var(--surface2);border-bottom:1px solid var(--border);}
+.srch{flex:1;min-width:240px;position:relative;}
+.srch input{width:100%;background:#fff;border:1.5px solid var(--border);border-radius:8px;padding:.5rem .85rem .5rem 2.2rem;color:#000;font-family:'Inter',sans-serif;font-size:.83rem;transition:border-color .2s,box-shadow .2s;}
+.srch input:focus{outline:none;border-color:var(--blue2);box-shadow:0 0 0 3px rgba(45,139,255,.12);}
+.srch input::placeholder{color:#999;}
+.srch-ic{position:absolute;left:.7rem;top:50%;transform:translateY(-50%);color:#999;}
+select.flt{background:#fff;border:1.5px solid var(--border);border-radius:8px;padding:.5rem .85rem;color:#000;font-family:'Inter',sans-serif;font-size:.8rem;cursor:pointer;}
+select.flt:focus{outline:none;border-color:var(--blue2);}
+
+/* BUTTONS */
+.btn{display:inline-flex;align-items:center;gap:5px;padding:.45rem .9rem;border-radius:8px;font-family:'Inter',sans-serif;font-size:.8rem;font-weight:600;cursor:pointer;border:none;transition:all .15s;white-space:nowrap;}
+.btn-primary{background:var(--blue);color:#fff;}.btn-primary:hover{background:#1255b8;}
+.btn-danger{background:var(--red);color:#fff;}.btn-danger:hover{background:#b91c1c;}
+.btn-ghost{background:#fff;color:#000;border:1.5px solid var(--border);}.btn-ghost:hover{background:var(--blue-pale);border-color:var(--border2);}
+.btn-warn{background:var(--amber-light);color:#000;border:1.5px solid #fcd34d;}.btn-warn:hover{background:#fde68a;}
+.btn-sm{padding:.28rem .6rem;font-size:.7rem;border-radius:6px;}
+.btn-icon{padding:.35rem .5rem;}
+
+.info-row{padding:.4rem 1.5rem;font-size:.72rem;color:#000;background:var(--bg2);border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;}
+.info-row b{color:var(--blue);font-family:'JetBrains Mono',monospace;}
+
+/* TABLE */
+.tbl-wrap{overflow-x:auto;}
+table{width:100%;border-collapse:collapse;min-width:900px;}
+thead th{background:var(--surface2);padding:.62rem .85rem;text-align:left;font-size:.63rem;font-weight:700;color:#000;text-transform:uppercase;letter-spacing:.07em;border-bottom:2px solid var(--border);cursor:pointer;user-select:none;white-space:nowrap;transition:background .15s;}
+thead th:hover{background:var(--blue-light);}
+thead th.sort-asc::after{content:' ↑';color:var(--blue);}
+thead th.sort-desc::after{content:' ↓';color:var(--blue);}
+tbody tr{border-bottom:1px solid var(--border);transition:background .12s;}
+tbody tr:nth-child(even){background:var(--bg2);}
+tbody tr:hover{background:var(--blue-light)!important;}
+tbody td{padding:.62rem .85rem;vertical-align:middle;white-space:nowrap;color:#000;}
+
+.plate{font-family:'JetBrains Mono',monospace;font-size:.8rem;font-weight:700;color:#000;background:var(--blue-pale);border:1.5px solid var(--border2);padding:3px 10px;border-radius:5px;display:inline-block;letter-spacing:.06em;}
+.badge{padding:3px 10px;border-radius:20px;font-size:.63rem;font-weight:700;text-transform:uppercase;display:inline-block;color:#000;}
+.b-asgn{background:var(--green-light);border:1px solid #6ee7b7;}
+.b-idle{background:var(--orange-light);border:1px solid #fdba74;}
+.proj-cell{max-width:210px;overflow:hidden;text-overflow:ellipsis;font-size:.78rem;}
+.name-cell{font-weight:600;font-size:.82rem;max-width:185px;overflow:hidden;text-overflow:ellipsis;}
+.role-cell{font-size:.75rem;max-width:155px;overflow:hidden;text-overflow:ellipsis;}
+.ph-link{color:#000;text-decoration:none;font-family:'JetBrains Mono',monospace;font-size:.73rem;}
+.ph-link:hover{text-decoration:underline;}
+.mono-cell{font-family:'JetBrains Mono',monospace;font-size:.75rem;}
+.acts{display:flex;gap:3px;}
+
+/* MODAL */
+.ov{display:none;position:fixed;inset:0;background:rgba(15,42,74,.4);backdrop-filter:blur(5px);z-index:500;align-items:center;justify-content:center;padding:1rem;}
+.ov.open{display:flex;}
+.modal{background:#fff;border:1.5px solid var(--border2);border-radius:16px;width:100%;max-width:640px;max-height:92vh;overflow-y:auto;animation:popIn .25s cubic-bezier(.34,1.56,.64,1);box-shadow:0 20px 60px rgba(26,111,219,.18);}
+@keyframes popIn{from{opacity:0;transform:scale(.94) translateY(10px);}to{opacity:1;transform:scale(1) translateY(0);}}
+.m-head{padding:1.1rem 1.5rem;border-bottom:1.5px solid var(--border);display:flex;align-items:center;justify-content:space-between;background:linear-gradient(135deg,var(--blue-pale),#fff);border-radius:16px 16px 0 0;position:sticky;top:0;z-index:10;}
+.m-title{font-size:.95rem;font-weight:800;color:#000;display:flex;align-items:center;gap:8px;}
+.m-close{background:none;border:none;color:#666;font-size:1.2rem;cursor:pointer;padding:4px 6px;border-radius:6px;transition:all .15s;line-height:1;}
+.m-close:hover{background:var(--red-light);color:var(--red);}
+.m-body{padding:1.4rem 1.5rem;}
+.m-foot{padding:.9rem 1.5rem;border-top:1.5px solid var(--border);display:flex;justify-content:space-between;align-items:center;background:var(--surface2);border-radius:0 0 16px 16px;position:sticky;bottom:0;}
+
+.f-sec{margin-bottom:1.3rem;}
+.f-sec-title{font-size:.6rem;font-weight:800;text-transform:uppercase;letter-spacing:.1em;color:#000;margin-bottom:.75rem;padding-bottom:.4rem;border-bottom:2px solid var(--blue-light);}
+.f-grid{display:grid;grid-template-columns:1fr 1fr;gap:.8rem;}
+.f-grid.three{grid-template-columns:1fr 1fr 1fr;}
+.f-full{grid-column:1/-1;}
+.field{display:flex;flex-direction:column;gap:3px;}
+.field label{font-size:.62rem;font-weight:700;color:#000;text-transform:uppercase;letter-spacing:.06em;}
+.field input,.field select{background:#fff;border:1.5px solid var(--border);border-radius:7px;padding:.48rem .75rem;color:#000;font-family:'Inter',sans-serif;font-size:.83rem;transition:border-color .15s,box-shadow .15s;}
+.field input:focus,.field select:focus{outline:none;border-color:var(--blue2);box-shadow:0 0 0 3px rgba(45,139,255,.1);}
+.field input::placeholder{color:#aaa;}
+.mono-in{font-family:'JetBrains Mono',monospace!important;font-size:.78rem!important;}
+
+/* autofill highlight */
+.autofilled{
+  background:#ecfdf5!important;
+  border-color:#10b981!important;
+  box-shadow:0 0 0 3px rgba(16,185,129,.15)!important;
+  animation:pulseGreen .5s ease;
+}
+@keyframes pulseGreen{
+  0%{background:#bbf7d0;border-color:#10b981;}
+  100%{background:#ecfdf5;border-color:#10b981;}
+}
+
+/* Personnel No field with lookup indicator */
+.pn-wrap{position:relative;}
+.pn-wrap input{padding-right:2rem!important;}
+.pn-status{position:absolute;right:.6rem;top:50%;transform:translateY(-50%);font-size:1rem;pointer-events:none;font-weight:700;}
+
+/* Detail */
+.d-grid{display:grid;grid-template-columns:1fr 1fr;gap:.9rem;}
+.d-sec{font-size:.6rem;font-weight:800;text-transform:uppercase;letter-spacing:.1em;color:#000;margin:1.1rem 0 .6rem;padding-bottom:4px;border-bottom:2px solid var(--blue-light);}
+.d-lbl{font-size:.6rem;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:#555;margin-bottom:2px;}
+.d-val{font-size:.88rem;font-weight:600;color:#000;}
+.d-full{grid-column:1/-1;}
+
+.conf-modal{max-width:400px;}
+.conf-body{padding:2rem 1.5rem;text-align:center;}
+.conf-icon{font-size:2.5rem;margin-bottom:.7rem;}
+.conf-title{font-size:1rem;font-weight:800;color:#000;margin-bottom:.4rem;}
+.conf-msg{font-size:.83rem;color:#333;line-height:1.55;}
+.conf-foot{padding:.9rem 1.5rem;border-top:1.5px solid var(--border);display:flex;gap:.5rem;justify-content:center;}
+
+.toasts{position:fixed;bottom:1.4rem;right:1.4rem;z-index:9999;display:flex;flex-direction:column;gap:.4rem;}
+.toast{background:#fff;border:1.5px solid var(--border);border-radius:10px;padding:.65rem 1rem;font-size:.81rem;font-weight:600;color:#000;display:flex;align-items:center;gap:8px;min-width:220px;animation:tIn .3s ease;box-shadow:0 4px 16px rgba(26,111,219,.15);}
+.toast.success{border-left:3px solid var(--green);}
+.toast.error{border-left:3px solid var(--red);}
+.toast.info{border-left:3px solid var(--blue);}
+@keyframes tIn{from{opacity:0;transform:translateX(16px);}to{opacity:1;transform:translateX(0);}}
+@keyframes tOut{to{opacity:0;transform:translateX(16px);}}
+
+.empty{text-align:center;padding:4rem 2rem;color:#555;}
+.empty-ic{font-size:2.5rem;margin-bottom:.7rem;opacity:.5;}
+::-webkit-scrollbar{width:5px;height:5px;}
+::-webkit-scrollbar-track{background:var(--bg);}
+::-webkit-scrollbar-thumb{background:var(--border2);border-radius:3px;}
+@media(max-width:768px){.stats{grid-template-columns:repeat(2,1fr);}.f-grid,.f-grid.three,.d-grid{grid-template-columns:1fr;}}
+</style>
+</head>
+<body>
+
+<div class="hdr">
+  <div class="brand">
+    <div class="brand-icon">🚗</div>
+    <div>
+      <div class="brand-name">Fleet Manager</div>
+      <div class="brand-sub">RENTAL FLEET REGISTRY — 2026</div>
+    </div>
+  </div>
+  <div class="hdr-right">
+    <button class="btn btn-ghost btn-sm" style="background:rgba(255,255,255,.15);color:#fff;border-color:rgba(255,255,255,.3);" onclick="exportCSV()">⬇ Export CSV</button>
+    <button class="btn btn-sm" style="background:#fff;color:var(--blue);font-weight:700;" onclick="openAdd()">+ Add Vehicle</button>
+  </div>
+</div>
+
+<div class="stats">
+  <div class="stat tot"><div class="stat-lbl">Total Vehicles</div><div class="stat-val" id="s-tot">0</div><div class="stat-bar" style="width:100%"></div></div>
+  <div class="stat asgn"><div class="stat-lbl">Assigned</div><div class="stat-val" id="s-asgn">0</div><div class="stat-bar" id="b-asgn"></div></div>
+  <div class="stat idle"><div class="stat-lbl">Idle</div><div class="stat-val" id="s-idle">0</div><div class="stat-bar" id="b-idle"></div></div>
+  <div class="stat proj"><div class="stat-lbl">Projects</div><div class="stat-val" id="s-proj">0</div><div class="stat-bar"></div></div>
+</div>
+
+<div class="toolbar">
+  <div class="srch"><span class="srch-ic">🔍</span><input type="text" id="q" placeholder="Search plate, name, project, chassis, phone, ID, personnel no…" oninput="render()"></div>
+  <select class="flt" id="fS" onchange="render()">
+    <option value="">All Statuses</option>
+    <option value="Assign to project">Assigned</option>
+    <option value="Idle">Idle</option>
+  </select>
+  <select class="flt" id="fPrj" onchange="render()">
+    <option value="">All Projects</option>
+        <option value="000000 - Dammam Warehouse">000000 - Dammam Warehouse</option>
+        <option value="000000 - General Projects">000000 - General Projects</option>
+        <option value="000000 - PMO">000000 - PMO</option>
+        <option value="000000 - TEPCO">000000 - TEPCO</option>
+        <option value="000000 - Underground">000000 - Underground</option>
+        <option value="236430 - Shadqam Project">236430 - Shadqam Project</option>
+        <option value="236433 - Al Dhahia Dhahran Project">236433 - Al Dhahia Dhahran Project</option>
+        <option value="236436 - Ring Road Project">236436 - Ring Road Project</option>
+        <option value="236437 - Al Omran Project">236437 - Al Omran Project</option>
+        <option value="519267 - The Avenues Project">519267 - The Avenues Project</option>
+        <option value="519271 - Project Plan 1558 (Defaf Proj.)">519271 - Project Plan 1558 (Defaf Proj.)</option>
+        <option value="519272 - Al Hamra Project">519272 - Al Hamra Project</option>
+        <option value="519275 - Surveying and Drawing Section">519275 - Surveying and Drawing Section</option>
+        <option value="519277 - Al Ju'aymah Project">519277 - Al Ju'aymah Project</option>
+        <option value="519279 - Al Shiraa Project">519279 - Al Shiraa Project</option>
+        <option value="519281 - Industrial Area 2 Project">519281 - Industrial Area 2 Project</option>
+        <option value="519284 - Al Bahr Project">519284 - Al Bahr Project</option>
+        <option value="519287 - North Al Thuqbah Project">519287 - North Al Thuqbah Project</option>
+        <option value="519289 - Qatif Station 2 Project">519289 - Qatif Station 2 Project</option>
+        <option value="519298 - Al Bayouniyah Project">519298 - Al Bayouniyah Project</option>
+        <option value="519299 - Al Hada 2 Project">519299 - Al Hada 2 Project</option>
+        <option value="844704 - GOSP Project">844704 - GOSP Project</option>
+        <option value="844705 - Al Uthmaniyah Project">844705 - Al Uthmaniyah Project</option>
+        <option value="844706 - Al Khalidiyah Project">844706 - Al Khalidiyah Project</option>
+        <option value="844707 - Insulation Coating Project">844707 - Insulation Coating Project</option>
+        <option value="86606 - Unified Contract Project Dammam">86606 - Unified Contract Project Dammam</option>
+        <option value="86607 - Al Jubail Project">86607 - Al Jubail Project</option>
+        <option value="86621 - Passive Defense Project (Fence Proj)">86621 - Passive Defense Project (Fence Proj)</option>
+        <option value="86634 - Al Hani Project">86634 - Al Hani Project</option>
+  </select>
+  <select class="flt" id="fY" onchange="render()">
+    <option value="">All Years</option>
+    <option>2024</option><option>2025</option><option>2026</option>
+  </select>
+</div>
+
+<div class="info-row">
+  <div>Showing <b id="shown">0</b> of <b id="tot-info">0</b> vehicles</div>
+  <div id="ts" style="font-size:.65rem;color:#666"></div>
+</div>
+
+<div class="tbl-wrap">
+<table>
+  <thead><tr>
+    <th onclick="sortBy('sr')"          id="th-sr">#</th>
+    <th onclick="sortBy('plateEn')"     id="th-plateEn">Plate No.</th>
+    <th onclick="sortBy('year')"        id="th-year">Year</th>
+    <th onclick="sortBy('status')"      id="th-status">Status</th>
+    <th onclick="sortBy('project')"     id="th-project">Project</th>
+    <th onclick="sortBy('name')"        id="th-name">Assigned To</th>
+    <th onclick="sortBy('personnelNo')" id="th-personnelNo">Personnel No.</th>
+    <th onclick="sortBy('profession')"  id="th-profession">Role</th>
+    <th onclick="sortBy('notes')" id="th-notes">Note</th>
+    <th>Phone</th>
+    <th>Actions</th>
+  </tr></thead>
+  <tbody id="tb"></tbody>
+</table>
+</div>
+
+<div class="toasts" id="toasts"></div>
+
+<!-- EDIT / ADD MODAL -->
+<div class="ov" id="editOv" onclick="closeBg(event,'editOv','closeEdit')">
+<div class="modal">
+  <div class="m-head">
+    <div class="m-title"><span id="eIcon">🚗</span><span id="eTitle">Add Vehicle</span></div>
+    <button class="m-close" onclick="closeEdit()">✕</button>
+  </div>
+  <div class="m-body">
+    <input type="hidden" id="fId">
+
+    <div class="f-sec">
+      <div class="f-sec-title">Vehicle Information</div>
+      <div class="f-grid three">
+        <div class="field"><label>Plate No. *</label><input id="fPE" class="mono-in" placeholder="8247 TZR"></div>
+        <div class="field"><label>Year *</label><select id="fYr"><option>2026</option><option>2025</option><option>2024</option><option>2023</option><option>2022</option></select></div>
+        <div class="field"><label>File No.</label><input id="fFl" class="mono-in" placeholder="7007537371"></div>
+      </div>
+      <div class="f-grid" style="margin-top:.8rem">
+        <div class="field f-full"><label>Chassis / VIN</label><input id="fCh" class="mono-in" placeholder="LJD0AA297R0279179"></div>
+
+      </div>
+    </div>
+
+    <div class="f-sec">
+      <div class="f-sec-title">Assignment</div>
+      <div class="f-grid">
+        <div class="field">
+          <label>Status *</label>
+          <select id="fSt" onchange="toggleProj()">
+            <option value="Assign to project">Assigned to Project</option>
+            <option value="Idle">Idle</option>
+          </select>
+        </div>
+        <div class="field" id="projF">
+          <label>Project</label>
+          <select id="fPr">
+            <option value="">— Select Project —</option>
+        <option value="000000 - Dammam Warehouse">000000 - Dammam Warehouse</option>
+        <option value="000000 - General Projects">000000 - General Projects</option>
+        <option value="000000 - PMO">000000 - PMO</option>
+        <option value="000000 - TEPCO">000000 - TEPCO</option>
+        <option value="000000 - Underground">000000 - Underground</option>
+        <option value="236430 - Shadqam Project">236430 - Shadqam Project</option>
+        <option value="236433 - Al Dhahia Dhahran Project">236433 - Al Dhahia Dhahran Project</option>
+        <option value="236436 - Ring Road Project">236436 - Ring Road Project</option>
+        <option value="236437 - Al Omran Project">236437 - Al Omran Project</option>
+        <option value="519267 - The Avenues Project">519267 - The Avenues Project</option>
+        <option value="519271 - Project Plan 1558 (Defaf Proj.)">519271 - Project Plan 1558 (Defaf Proj.)</option>
+        <option value="519272 - Al Hamra Project">519272 - Al Hamra Project</option>
+        <option value="519275 - Surveying and Drawing Section">519275 - Surveying and Drawing Section</option>
+        <option value="519277 - Al Ju'aymah Project">519277 - Al Ju'aymah Project</option>
+        <option value="519279 - Al Shiraa Project">519279 - Al Shiraa Project</option>
+        <option value="519281 - Industrial Area 2 Project">519281 - Industrial Area 2 Project</option>
+        <option value="519284 - Al Bahr Project">519284 - Al Bahr Project</option>
+        <option value="519287 - North Al Thuqbah Project">519287 - North Al Thuqbah Project</option>
+        <option value="519289 - Qatif Station 2 Project">519289 - Qatif Station 2 Project</option>
+        <option value="519298 - Al Bayouniyah Project">519298 - Al Bayouniyah Project</option>
+        <option value="519299 - Al Hada 2 Project">519299 - Al Hada 2 Project</option>
+        <option value="844704 - GOSP Project">844704 - GOSP Project</option>
+        <option value="844705 - Al Uthmaniyah Project">844705 - Al Uthmaniyah Project</option>
+        <option value="844706 - Al Khalidiyah Project">844706 - Al Khalidiyah Project</option>
+        <option value="844707 - Insulation Coating Project">844707 - Insulation Coating Project</option>
+        <option value="86606 - Unified Contract Project Dammam">86606 - Unified Contract Project Dammam</option>
+        <option value="86607 - Al Jubail Project">86607 - Al Jubail Project</option>
+        <option value="86621 - Passive Defense Project (Fence Proj)">86621 - Passive Defense Project (Fence Proj)</option>
+        <option value="86634 - Al Hani Project">86634 - Al Hani Project</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <div class="f-sec">
+      <div class="f-sec-title">Assigned Personnel</div>
+      <div class="f-grid">
+        <div class="field">
+          <label>Personnel No.</label>
+          <div class="pn-wrap">
+            <input id="fPN" class="mono-in" placeholder="e.g. 30804" oninput="lookupPersonnel(this.value)">
+            <span class="pn-status" id="pnStatus"></span>
+          </div>
+        </div>
+        <div class="field f-full"><label>Full Name</label><input id="fNm" placeholder="Auto-filled from Personnel No."></div>
+        <div class="field"><label>National ID</label><input id="fNI" class="mono-in" placeholder="Auto-filled from Personnel No."></div>
+        <div class="field f-full"><label>Job Title / Role</label><input id="fRo" placeholder="Auto-filled from Personnel No."></div>
+        <div class="field f-full"><label>Phone (without +966)</label><input id="fPh" class="mono-in" placeholder="Auto-filled from Personnel No."></div>
+      </div>
+    </div>
+    <div class="f-sec">
+      <div class="f-sec-title">Note</div>
+      <div class="field"><label>Note</label><input id="fNotes" placeholder="Add any notes about this vehicle…"></div>
+    </div>
+  </div>
+  <div class="m-foot">
+    <button class="btn btn-ghost" onclick="closeEdit()">Cancel</button>
+    <div style="display:flex;gap:.5rem">
+      <button class="btn btn-ghost" onclick="clearForm()">Clear</button>
+      <button class="btn btn-primary" onclick="saveVehicle()">💾 Save</button>
+    </div>
+  </div>
+</div>
+</div>
+
+<!-- DETAIL MODAL -->
+<div class="ov" id="detOv" onclick="closeBg(event,'detOv','closeDet')">
+<div class="modal">
+  <div class="m-head">
+    <div class="m-title">🔍 <span id="dTitle">Details</span></div>
+    <button class="m-close" onclick="closeDet()">✕</button>
+  </div>
+  <div class="m-body" id="dBody"></div>
+  <div class="m-foot">
+    <button class="btn btn-ghost" onclick="closeDet()">Close</button>
+    <div style="display:flex;gap:.5rem">
+      <button class="btn btn-warn" id="dEditBtn">✏️ Edit</button>
+      <button class="btn btn-danger" id="dDelBtn">🗑 Delete</button>
+    </div>
+  </div>
+</div>
+</div>
+
+<!-- CONFIRM -->
+<div class="ov" id="confOv">
+<div class="modal conf-modal">
+  <div class="conf-body">
+    <div class="conf-icon">⚠️</div>
+    <div class="conf-title">Delete Vehicle?</div>
+    <div class="conf-msg" id="confMsg"></div>
+  </div>
+  <div class="conf-foot">
+    <button class="btn btn-ghost" onclick="closeConf()">Cancel</button>
+    <button class="btn btn-danger" id="confOk">Yes, Delete</button>
+  </div>
+</div>
+</div>
+
+<script>
+const SEED = [
+  {"id": 1, "sr": 1, "plateEn": "8247 TZR", "year": 2024, "status": "Assign to project", "project": "86621 - Passive Defense Project (Fence Proj)", "name": "MOHAMMED IBRAHIM HAMED BELAL", "nationalId": "2539786646", "personnelNo": "30804", "profession": "Project Engineer", "phone": "565184041", "chassis": "LJD0AA297R0279179", "file": "7007537371", "licenseStatus": "Valid", "inspectionStatus": "Valid"},
+  {"id": 2, "sr": 2, "plateEn": "7392 NLR", "year": 2024, "status": "Assign to project", "project": "519284 - Al Bahr Project", "name": "ALHASSAN ABDULRAHIM OTHMAN", "nationalId": "2077327472", "personnelNo": "30003", "profession": "Civil Engineer QA-QC", "phone": "540742044", "chassis": "LJD0AA290R0275488", "file": "7007537371", "licenseStatus": "Valid", "inspectionStatus": "Valid"},
+  {"id": 3, "sr": 3, "plateEn": "8248 TZR", "year": 2024, "status": "Assign to project", "project": "236436 - Ring Road Project", "name": "VENKATES KASTHURI BALASUBRAMANIYAN", "nationalId": "2564123467", "personnelNo": "28516", "profession": "Project Engineer", "phone": "559806532", "chassis": "LJD0AA297R0279277", "file": "7007537371", "licenseStatus": "Valid", "inspectionStatus": "Valid"},
+  {"id": 4, "sr": 4, "plateEn": "1735 TZR", "year": 2024, "status": "Assign to project", "project": "86606 - Unified Contract Project Dammam", "name": "MAHGOUB HASSAN ABDELSAMED", "nationalId": "2397364452", "personnelNo": "23375", "profession": "Site Engineer", "phone": "535799687", "chassis": "LJD0AA295R0275616", "file": "7007537371", "licenseStatus": "Valid", "inspectionStatus": "Valid"},
+  {"id": 5, "sr": 5, "plateEn": "7952 HLR", "year": 2024, "status": "Assign to project", "project": "844706 - Al Khalidiyah Project", "name": "MUHAMMAD KHIZIR ISHAQ", "nationalId": "2543377523", "personnelNo": "32307", "profession": "Safety Engineer", "phone": "500966414", "chassis": "LJD0AA299R0275733", "file": "7007537371", "licenseStatus": "Valid", "inspectionStatus": "Valid"},
+  {"id": 6, "sr": 6, "plateEn": "7395 NLR", "year": 2024, "status": "Assign to project", "project": "519279 - Al Shiraa Project", "name": "JAYESH KUZHIYAMPLAVIL THOMAS", "nationalId": "2564119655", "personnelNo": "28450", "profession": "Site Manager", "phone": "599164578", "chassis": "LJD0AA290R0275569", "file": "7007537371", "licenseStatus": "Valid", "inspectionStatus": "Valid"},
+  {"id": 7, "sr": 7, "plateEn": "1737 TZR", "year": 2024, "status": "Assign to project", "project": "519289 - Qatif Station 2 Project", "name": "Moath Nabeel Al shawabkeh", "nationalId": "2061386294", "personnelNo": "21445", "profession": "Construction Manager", "phone": "541480918", "chassis": "LJD0AA295R0275602", "file": "7007537371", "licenseStatus": "Valid", "inspectionStatus": "Valid"},
+  {"id": 8, "sr": 8, "plateEn": "8246 TZR", "year": 2024, "status": "Assign to project", "project": "519267 - The Avenues Project", "name": "MUHAMMED JUBAIR", "nationalId": "2581949241", "personnelNo": "29604", "profession": "Safety Engineer", "phone": "548486907", "chassis": "LJD0AA297R0279165", "file": "7007537371", "licenseStatus": "Valid", "inspectionStatus": "Valid"},
+  {"id": 9, "sr": 9, "plateEn": "7951 HLR", "year": 2024, "status": "Assign to project", "project": "519289 - Qatif Station 2 Project", "name": "SHAHAB KHAN IHSAN UDDIN", "nationalId": "2594409969", "personnelNo": "32311", "profession": "Civil Engineer QA-QC", "phone": "532720621", "chassis": "LJD0AA299R0275747", "file": "7007537371", "licenseStatus": "Valid", "inspectionStatus": "Valid"},
+  {"id": 10, "sr": 10, "plateEn": "7393 NLR", "year": 2024, "status": "Assign to project", "project": "519271 - Project Plan 1558 (Defaf Proj.)", "name": "MOHEB MAHMOUD MOUSTAFA ELBANNA", "nationalId": "2555077870", "personnelNo": "28571", "profession": "Civil Engineer", "phone": "546093966", "chassis": "LJD0AA290R0275491", "file": "7007537371", "licenseStatus": "Valid", "inspectionStatus": "Valid"},
+  {"id": 11, "sr": 11, "plateEn": "7394 NLR", "year": 2024, "status": "Assign to project", "project": "844705 - Al Uthmaniyah Project", "name": "ABU BAKAR MAJEED ABDUL MAJEED KHAN", "nationalId": "2565641418", "personnelNo": "31295", "profession": "Safety Officer", "phone": "554837863", "chassis": "LJD0AA290R0275555", "file": "7007537371", "licenseStatus": "Valid", "inspectionStatus": "Valid"},
+  {"id": 12, "sr": 12, "plateEn": "9468 BKR", "year": 2024, "status": "Assign to project", "project": "519272 - Al Hamra Project", "name": "RAJAMUHAMMAD FAROOQ RAZZAQ", "nationalId": "2191869201", "personnelNo": "14164", "profession": "Electrician", "phone": "551649275", "chassis": "LJD0AA291R0265343", "file": "7007537371", "licenseStatus": "Valid", "inspectionStatus": "Valid"},
+  {"id": 13, "sr": 13, "plateEn": "9467 BKR", "year": 2024, "status": "Assign to project", "project": "236430 - Shadqam Project", "name": "ADEL IBRAHIM ELSAYED TORAB", "nationalId": "2388768794", "personnelNo": "28887", "profession": "Site Manager", "phone": "564286913", "chassis": "LJD0AA291R0264046", "file": "7007537371", "licenseStatus": "Valid", "inspectionStatus": "Valid"},
+  {"id": 14, "sr": 14, "plateEn": "8245 TZR", "year": 2024, "status": "Assign to project", "project": "519267 - The Avenues Project", "name": "MOHAMMED EHTESHAM", "nationalId": "2545287100", "personnelNo": "29551", "profession": "Civil Engineer QA-QC", "phone": "535038264", "chassis": "LJD0AA297R0279151", "file": "7007537371", "licenseStatus": "Valid", "inspectionStatus": "Valid"},
+  {"id": 15, "sr": 15, "plateEn": "8736 TNR", "year": 2024, "status": "Assign to project", "project": "519284 - Al Bahr Project", "name": "ABDULLA AHMED ZIYADAH", "nationalId": "2144086358", "personnelNo": "29743", "profession": "Civil Engineer QA-QC", "phone": "561573087", "chassis": "LJD0AA291R0286788", "file": "7007537371", "licenseStatus": "Valid", "inspectionStatus": "Valid"},
+  {"id": 16, "sr": 16, "plateEn": "8737 TNR", "year": 2024, "status": "Assign to project", "project": "844705 - Al Uthmaniyah Project", "name": "MUJIBUR RAHMAN", "nationalId": "2617930413", "personnelNo": "32217", "profession": "Project Engineer", "phone": "544610984", "chassis": "LJD0AA291R0286791", "file": "7007537371", "licenseStatus": "Valid", "inspectionStatus": "Valid"},
+  {"id": 17, "sr": 17, "plateEn": "7866 HER", "year": 2024, "status": "Assign to project", "project": "519289 - Qatif Station 2 Project", "name": "JAISON JEEVAN", "nationalId": "2553016193", "personnelNo": "27902", "profession": "Project Engineer", "phone": "509325637", "chassis": "LJD0AA299R0287803", "file": "7007537371", "licenseStatus": "Valid", "inspectionStatus": "Valid"},
+  {"id": 18, "sr": 18, "plateEn": "7829 HER", "year": 2024, "status": "Assign to project", "project": "519281 - Industrial Area 2 Project", "name": "MUHAMMAD ILYAS RUSTAM ALI", "nationalId": "2577062868", "personnelNo": "32287", "profession": "Electrical Engineer QA-QC", "phone": "568086716", "chassis": "LJD0AA296T0287533", "file": "7007537371", "licenseStatus": "Valid", "inspectionStatus": "Valid"},
+  {"id": 19, "sr": 19, "plateEn": "7876 HER", "year": 2024, "status": "Idle", "project": "000000 - PMO", "name": "", "nationalId": "", "personnelNo": "", "profession": "", "phone": "", "chassis": "LJD0AA290R0287821", "file": "7007537371", "licenseStatus": "Valid", "inspectionStatus": "Valid"},
+  {"id": 20, "sr": 20, "plateEn": "7879 HER", "year": 2024, "status": "Assign to project", "project": "519272 - Al Hamra Project", "name": "ANEES UR REHMAN", "nationalId": "2539646246", "personnelNo": "28483", "profession": "Safety Engineer", "phone": "536923096", "chassis": "LJD0AA290R0287818", "file": "7007537371", "licenseStatus": "Valid", "inspectionStatus": "Valid"},
+  {"id": 21, "sr": 21, "plateEn": "7844 HER", "year": 2024, "status": "Assign to project", "project": "519267 - The Avenues Project", "name": "FAZREEN AHAMED MOHIDEEN", "nationalId": "2539660585", "personnelNo": "27174", "profession": "Test Engineer", "phone": "568467129", "chassis": "LJD0AA290R0286698", "file": "7007537371", "licenseStatus": "Valid", "inspectionStatus": "Valid"},
+  {"id": 22, "sr": 22, "plateEn": "7830 HER", "year": 2024, "status": "Assign to project", "project": "86634 - Al Hani Project", "name": "Darping Mustapha", "nationalId": "2324787148", "personnelNo": "21987", "profession": "Civil Engineer QA-QC", "phone": "594617513", "chassis": "LJD0AA290R0287480", "file": "7007537371", "licenseStatus": "Valid", "inspectionStatus": "Valid"},
+  {"id": 23, "sr": 23, "plateEn": "7827 HER", "year": 2024, "status": "Assign to project", "project": "236436 - Ring Road Project", "name": "MOHAMMED DANYAL BALOCH", "nationalId": "2575252123", "personnelNo": "29022", "profession": "Electrical Engineer", "phone": "532375601", "chassis": "LJD0AA296R0287807", "file": "7007537371", "licenseStatus": "Valid", "inspectionStatus": "Valid"},
+  {"id": 24, "sr": 24, "plateEn": "7875 HER", "year": 2024, "status": "Assign to project", "project": "236437 - Al Omran Project", "name": "BELAL ALSAYED ELAGAMY ALI", "nationalId": "2556397814", "personnelNo": "29076", "profession": "Civil Engineer", "phone": "545006547", "chassis": "LJD0AA296R0287824", "file": "7007537371", "licenseStatus": "Valid", "inspectionStatus": "Valid"},
+  {"id": 25, "sr": 25, "plateEn": "7838 HER", "year": 2024, "status": "Assign to project", "project": "519287 - North Al Thuqbah Project", "name": "AZIZ UR REHMAN KAUSAR", "nationalId": "2564119895", "personnelNo": "28447", "profession": "Electrical Engineer", "phone": "563362505", "chassis": "LJD0AA298R0287825", "file": "7007537371", "licenseStatus": "Valid", "inspectionStatus": "Valid"},
+  {"id": 26, "sr": 26, "plateEn": "7889 HER", "year": 2024, "status": "Assign to project", "project": "844705 - Al Uthmaniyah Project", "name": "MUHAMMAD ABDUL REHMAN KHAN", "nationalId": "2581952138", "personnelNo": "29639", "profession": "Fiber Optics Technician", "phone": "598273016", "chassis": "LJD0AA296R0287810", "file": "7007537371", "licenseStatus": "Valid", "inspectionStatus": "Valid"},
+  {"id": 27, "sr": 27, "plateEn": "7851 HER", "year": 2024, "status": "Assign to project", "project": "519287 - North Al Thuqbah Project", "name": "MUHAMMAD BILAL KHAN", "nationalId": "2520298494", "personnelNo": "29172", "profession": "Safety Officer", "phone": "510250185", "chassis": "LJD0AA299R0287820", "file": "7007537371", "licenseStatus": "Valid", "inspectionStatus": "Valid"},
+  {"id": 28, "sr": 28, "plateEn": "7864 HER", "year": 2024, "status": "Assign to project", "project": "519272 - Al Hamra Project", "name": "ESLAM NAGATY MAMOUN", "nationalId": "2587969722", "personnelNo": "30414", "profession": "Safety Officer", "phone": "572737468", "chassis": "LJD0AA299R0287817", "file": "7007537371", "licenseStatus": "Valid", "inspectionStatus": "Valid"},
+  {"id": 29, "sr": 29, "plateEn": "7854 HER", "year": 2024, "status": "Assign to project", "project": "519279 - Al Shiraa Project", "name": "SHABAS HAKKIM", "nationalId": "2581948623", "personnelNo": "29673", "profession": "Safety Officer", "phone": "556472768", "chassis": "LJD0AA298R0287775", "file": "7007537371", "licenseStatus": "Valid", "inspectionStatus": "Valid"},
+  {"id": 30, "sr": 30, "plateEn": "7867 HER", "year": 2024, "status": "Assign to project", "project": "236433 - Al Dhahia Dhahran Project", "name": "AHMED AFIFI SHABAAN ELKATTAN", "nationalId": "2562688032", "personnelNo": "29171", "profession": "Electrical Engineer QA-QC", "phone": "570746189", "chassis": "LJD0AA298R0287792", "file": "7007537371", "licenseStatus": "Valid", "inspectionStatus": "Valid"},
+  {"id": 31, "sr": 31, "plateEn": "7886 HER", "year": 2024, "status": "Assign to project", "project": "519298 - Al Bayouniyah Project", "name": "MOHAMMED JASSIM ALQATIFI", "nationalId": "1010607719", "personnelNo": "29929", "profession": "Project Engineer", "phone": "554710993", "chassis": "LJD0AA297R0286794", "file": "7007537371", "licenseStatus": "Valid", "inspectionStatus": "Valid"},
+  {"id": 32, "sr": 32, "plateEn": "8197 RHX", "year": 2024, "status": "Assign to project", "project": "844705 - Al Uthmaniyah Project", "name": "Zeeshan Abbasi", "nationalId": "2423951298", "personnelNo": "22304", "profession": "Safety Engineer", "phone": "550137726", "chassis": "LJD0AA298S0300742", "file": "7007537371", "licenseStatus": "Valid", "inspectionStatus": "Valid"},
+  {"id": 33, "sr": 33, "plateEn": "8178 RHX", "year": 2024, "status": "Idle", "project": "000000 - PMO", "name": "", "nationalId": "", "personnelNo": "", "profession": "", "phone": "", "chassis": "LJD0AA298S0300787", "file": "7007537371", "licenseStatus": "Valid", "inspectionStatus": "Valid"},
+  {"id": 34, "sr": 34, "plateEn": "8177 RHX", "year": 2024, "status": "Assign to project", "project": "519271 - Project Plan 1558 (Defaf Proj.)", "name": "KHALED BASUONI ELSHENAWY", "nationalId": "2559045279", "personnelNo": "28890", "profession": "Civil Engineer", "phone": "536672291", "chassis": "LJD0AA298S0300756", "file": "7007537371", "licenseStatus": "Valid", "inspectionStatus": "Valid"},
+  {"id": 35, "sr": 35, "plateEn": "8175 RHX", "year": 2024, "status": "Assign to project", "project": "236433 - Al Dhahia Dhahran Project", "name": "Syed Khadeer Syed Habeeb", "nationalId": "2425425408", "personnelNo": "22131", "profession": "Electrical Engineer QA-QC", "phone": "554204602", "chassis": "LJD0AA298S0300708", "file": "7007537371", "licenseStatus": "Valid", "inspectionStatus": "Valid"},
+  {"id": 36, "sr": 36, "plateEn": "8176 RHX", "year": 2024, "status": "Assign to project", "project": "519277 - Al Ju'aymah Project", "name": "HUSSAIN ABDULELAH ALBOALI", "nationalId": "1093629614", "personnelNo": "30196", "profession": "Civil Engineer QA-QC", "phone": "534338681", "chassis": "LJD0AA298S0300711", "file": "7007537371", "licenseStatus": "Valid", "inspectionStatus": "Valid"},
+  {"id": 37, "sr": 37, "plateEn": "8168 RHX", "year": 2024, "status": "Assign to project", "project": "844707 - Insulation Coating Project", "name": "NADHAR SHAH NAZEER", "nationalId": "2538586385", "personnelNo": "32302", "profession": "Site Engineer", "phone": "508774693", "chassis": "LJD0AA297S0301204", "file": "7007537371", "licenseStatus": "Valid", "inspectionStatus": "Valid"},
+  {"id": 38, "sr": 38, "plateEn": "8195 RHX", "year": 2024, "status": "Assign to project", "project": "519272 - Al Hamra Project", "name": "KHALED AHMED KHALIFA", "nationalId": "2386049387", "personnelNo": "30447", "profession": "Safety Engineer", "phone": "553111724", "chassis": "LJD0AA297S0301154", "file": "7007537371", "licenseStatus": "Valid", "inspectionStatus": "Valid"},
+  {"id": 39, "sr": 39, "plateEn": "8196 RHX", "year": 2024, "status": "Assign to project", "project": "519299 - Al Hada 2 Project", "name": "MORTATHA RASOUL ALTURIFI", "nationalId": "1113549362", "personnelNo": "31590", "profession": "Civil Engineer QA-QC", "phone": "539244002", "chassis": "LJD0AA297S0301171", "file": "7007537371", "licenseStatus": "Valid", "inspectionStatus": "Valid"},
+  {"id": 40, "sr": 40, "plateEn": "8179 RHX", "year": 2024, "status": "Assign to project", "project": "236433 - Al Dhahia Dhahran Project", "name": "MUHAMMAD WASIM FAREED", "nationalId": "2554972766", "personnelNo": "28921", "profession": "Safety Officer", "phone": "597639352", "chassis": "LJD0AA298S0300790", "file": "7007537371", "licenseStatus": "Valid", "inspectionStatus": "Valid"},
+  {"id": 41, "sr": 41, "plateEn": "8193 RHX", "year": 2024, "status": "Assign to project", "project": "519284 - Al Bahr Project", "name": "SYED MUHAMMAD ALI HAIDER", "nationalId": "2576451575", "personnelNo": "29327", "profession": "Site Engineer", "phone": "531091045", "chassis": "LJD0AA297S0301140", "file": "7007537371", "licenseStatus": "Valid", "inspectionStatus": "Valid"},
+  {"id": 42, "sr": 42, "plateEn": "9330 UHR", "year": 2024, "status": "Assign to project", "project": "000000 - Dammam Warehouse", "name": "Salem Saeed Alqahtani", "nationalId": "1039368855", "personnelNo": "22712", "profession": "Admin Services Supervisor", "phone": "501511546", "chassis": "LJD0AA29XS0311628", "file": "7007537371", "licenseStatus": "Valid", "inspectionStatus": "Valid"},
+  {"id": 43, "sr": 43, "plateEn": "9331 UHR", "year": 2024, "status": "Assign to project", "project": "86606 - Unified Contract Project Dammam", "name": "NOUR BASSAM YOUNESS", "nationalId": "2117605077", "personnelNo": "25369", "profession": "Electrical Engineer", "phone": "556036085", "chassis": "LJD0AA29XS0311774", "file": "7007537371", "licenseStatus": "Valid", "inspectionStatus": "Valid"},
+  {"id": 44, "sr": 44, "plateEn": "9644 BVR", "year": 2024, "status": "Assign to project", "project": "86606 - Unified Contract Project Dammam", "name": "SHEKH AMAMUL HAK", "nationalId": "2529460426", "personnelNo": "26392", "profession": "13.8kV Cable Technician", "phone": "557864739", "chassis": "LJD0AA299S0300720", "file": "7007537371", "licenseStatus": "Valid", "inspectionStatus": "Valid"},
+  {"id": 45, "sr": 45, "plateEn": "9557 BVR", "year": 2024, "status": "Assign to project", "project": "86606 - Unified Contract Project Dammam", "name": "Mohammad Mohee Yousef", "nationalId": "2311216820", "personnelNo": "17810", "profession": "Operations Coordinator", "phone": "533965667", "chassis": "LJD0AA299S0300703", "file": "7007537371", "licenseStatus": "Valid", "inspectionStatus": "Valid"},
+  {"id": 46, "sr": 46, "plateEn": "9329 UHR", "year": 2024, "status": "Assign to project", "project": "86621 - Passive Defense Project (Fence Proj)", "name": "MOSAB MOHAMMED BADR", "nationalId": "2542470535", "personnelNo": "31067", "profession": "Site Engineer", "phone": "570867141", "chassis": "LJD0AA29XS0311595", "file": "7007537371", "licenseStatus": "Valid", "inspectionStatus": "Valid"},
+  {"id": 47, "sr": 47, "plateEn": "9637 UHR", "year": 2024, "status": "Assign to project", "project": "86606 - Unified Contract Project Dammam", "name": "YASIR MEHMOOD LATIF", "nationalId": "2236511420", "personnelNo": "23725", "profession": "Electrician", "phone": "582579963", "chassis": "LJD0AA299S0300751", "file": "7007537371", "licenseStatus": "Valid", "inspectionStatus": "Valid"},
+  {"id": 48, "sr": 48, "plateEn": "9327 UHR", "year": 2024, "status": "Assign to project", "project": "000000 - General Projects", "name": "KHALAF ABDULLAH ALSHAMMARI", "nationalId": "1007723982", "personnelNo": "28801", "profession": "Admin Services Supervisor", "phone": "503774883", "chassis": "LJD0AA29XS0311578", "file": "7007537371", "licenseStatus": "Valid", "inspectionStatus": "Valid"},
+  {"id": 49, "sr": 49, "plateEn": "9635 BVR", "year": 2024, "status": "Assign to project", "project": "86606 - Unified Contract Project Dammam", "name": "MOHAMMED EID ALWAKIL", "nationalId": "2540988488", "personnelNo": "27183", "profession": "Electrician", "phone": "569154303", "chassis": "LJD0AA299S0300748", "file": "7007537371", "licenseStatus": "Valid", "inspectionStatus": "Valid"},
+  {"id": 50, "sr": 50, "plateEn": "6146 SBD", "year": 2024, "status": "Assign to project", "project": "844704 - GOSP Project", "name": "AHMED RAMZI ALI MOHAMED", "nationalId": "2311925628", "personnelNo": "32372", "profession": "Directional Drilling Supervisor", "phone": "567402206", "chassis": "LJD0AA292S0293870", "file": "7007537371", "licenseStatus": "Valid", "inspectionStatus": "Valid"},
+  {"id": 51, "sr": 51, "plateEn": "6160 SBD", "year": 2024, "status": "Assign to project", "project": "844705 - Al Uthmaniyah Project", "name": "NADEEM AHMAD KHAN", "nationalId": "2542506445", "personnelNo": "32421", "profession": "QA/QC Electrical Engineer", "phone": "565513624", "chassis": "LJD0AA295S0331527", "file": "7007537371", "licenseStatus": "Valid", "inspectionStatus": "Valid"},
+  {"id": 52, "sr": 52, "plateEn": "6166 SBD", "year": 2024, "status": "Assign to project", "project": "844705 - Al Uthmaniyah Project", "name": "AHMED ABDULLAH ALYOUSEF", "nationalId": "1106988007", "personnelNo": "31382", "profession": "Civil Engineer", "phone": "592665897", "chassis": "LJD0AA297S0331223", "file": "7007537371", "licenseStatus": "Valid", "inspectionStatus": "Valid"},
+  {"id": 53, "sr": 53, "plateEn": "6142 SBD", "year": 2024, "status": "Assign to project", "project": "844705 - Al Uthmaniyah Project", "name": "MUHAMMAD RIZWAN IBRAHEEM", "nationalId": "2610772598", "personnelNo": "32308", "profession": "Site Engineer", "phone": "580254213", "chassis": "LJD0AA291S0294394", "file": "7007537371", "licenseStatus": "Valid", "inspectionStatus": "Valid"},
+  {"id": 54, "sr": 54, "plateEn": "6143 SBD", "year": 2024, "status": "Assign to project", "project": "844704 - GOSP Project", "name": "HOSSAM ELDIN ANTAR SALAMA", "nationalId": "2515655658", "personnelNo": "30894", "profession": "Project Engineer", "phone": "534162640", "chassis": "LJD0AA292S0293884", "file": "7007537371", "licenseStatus": "Valid", "inspectionStatus": "Valid"},
+  {"id": 55, "sr": 55, "plateEn": "6170 SBD", "year": 2024, "status": "Assign to project", "project": "519272 - Al Hamra Project", "name": "MOHAMMED MEHBOOB ASGHAR ZIA", "nationalId": "2594004430", "personnelNo": "30969", "profession": "Civil Engineer QA-QC", "phone": "550221671", "chassis": "LJD0AA297S0331545", "file": "7007537371", "licenseStatus": "Valid", "inspectionStatus": "Valid"},
+  {"id": 56, "sr": 56, "plateEn": "6162 SBD", "year": 2024, "status": "Assign to project", "project": "236430 - Shadqam Project", "name": "FAHAD ABDULLAH ALDARWISH", "nationalId": "1112285240", "personnelNo": "23791", "profession": "Safety Officer", "phone": "544146938", "chassis": "LJD0AA295S0331396", "file": "7007537371", "licenseStatus": "Valid", "inspectionStatus": "Valid"},
+  {"id": 57, "sr": 57, "plateEn": "6159 SBD", "year": 2024, "status": "Assign to project", "project": "519281 - Industrial Area 2 Project", "name": "ABDULMAJEED ALSHAMMARI", "nationalId": "1105649501", "personnelNo": "29844", "profession": "Electrical Engineer", "phone": "541264772", "chassis": "LJD0AA298S0327746", "file": "7007537371", "licenseStatus": "Valid", "inspectionStatus": "Valid"},
+  {"id": 58, "sr": 58, "plateEn": "6163 SBD", "year": 2024, "status": "Assign to project", "project": "844704 - GOSP Project", "name": "MIAN SABIR SHAH", "nationalId": "2532315146", "personnelNo": "28891", "profession": "Safety Officer", "phone": "509589109", "chassis": "LJD0AA295S0331401", "file": "7007537371", "licenseStatus": "Valid", "inspectionStatus": "Valid"},
+  {"id": 59, "sr": 59, "plateEn": "6165 SBD", "year": 2024, "status": "Assign to project", "project": "519284 - Al Bahr Project", "name": "SHAKEEL AHAMED ATHULLA SAHEB", "nationalId": "2271279057", "personnelNo": "24922", "profession": "Electrical Engineer", "phone": "572919186", "chassis": "LJD0AA294S0331521", "file": "7007537371", "licenseStatus": "Valid", "inspectionStatus": "Valid"},
+  {"id": 60, "sr": 60, "plateEn": "6161 SBD", "year": 2024, "status": "Assign to project", "project": "519299 - Al Hada 2 Project", "name": "ADNAN HASSAN LAILA", "nationalId": "2163628429", "personnelNo": "32291", "profession": "Projects Coordinator", "phone": "532077288", "chassis": "LJD0AA295S0331530", "file": "7007537371", "licenseStatus": "Valid", "inspectionStatus": "Valid"},
+  {"id": 61, "sr": 61, "plateEn": "6148 SBD", "year": 2024, "status": "Assign to project", "project": "519267 - The Avenues Project", "name": "SHAHABAS ALI MOHAMMED", "nationalId": "2568325894", "personnelNo": "29023", "profession": "Safety Engineer", "phone": "560093361", "chassis": "LJD0AA291S0294167", "file": "7007537371", "licenseStatus": "Valid", "inspectionStatus": "Valid"},
+  {"id": 62, "sr": 62, "plateEn": "6183 SBD", "year": 2024, "status": "Assign to project", "project": "519272 - Al Hamra Project", "name": "ARIF CHANGANASSERY HAMSA", "nationalId": "2566397523", "personnelNo": "32286", "profession": "Safety Officer", "phone": "574013348", "chassis": "LJD0AA296S0331519", "file": "7007537371", "licenseStatus": "Valid", "inspectionStatus": "Valid"},
+  {"id": 63, "sr": 63, "plateEn": "6177 SBD", "year": 2024, "status": "Assign to project", "project": "000000 - Underground", "name": "ABDULRAHMAN SALEH ALSHAMMARI", "nationalId": "1093258844", "personnelNo": "28584", "profession": "HDD Unit Head", "phone": "532303837", "chassis": "LJD0AA29XS0331393", "file": "7007537371", "licenseStatus": "Valid", "inspectionStatus": "Valid"},
+  {"id": 64, "sr": 64, "plateEn": "6180 SBD", "year": 2024, "status": "Assign to project", "project": "86634 - Al Hani Project", "name": "Muhammad Ahsan Ibraheem", "nationalId": "2384391088", "personnelNo": "20522", "profession": "Electronics & Telecom Engineer", "phone": "547574927", "chassis": "LJD0AA296S0328023", "file": "7007537371", "licenseStatus": "Valid", "inspectionStatus": "Valid"},
+  {"id": 65, "sr": 65, "plateEn": "6176 SBD", "year": 2024, "status": "Assign to project", "project": "519281 - Industrial Area 2 Project", "name": "MUHAMMED SHAN SHAMSUDEEN", "nationalId": "2354764967", "personnelNo": "31730", "profession": "Safety Officer", "phone": "572669821", "chassis": "LJD0AA29XS0331538", "file": "7007537371", "licenseStatus": "Valid", "inspectionStatus": "Valid"},
+  {"id": 66, "sr": 66, "plateEn": "6149 SBD", "year": 2024, "status": "Assign to project", "project": "519284 - Al Bahr Project", "name": "TAREK YAHIA ABDALLA OTHMAN", "nationalId": "2485980433", "personnelNo": "31929", "profession": "Safety Officer", "phone": "541847621", "chassis": "LJD0AA291S0293861", "file": "7007537371", "licenseStatus": "Valid", "inspectionStatus": "Valid"},
+  {"id": 67, "sr": 67, "plateEn": "6179 SBD", "year": 2024, "status": "Assign to project", "project": "86621 - Passive Defense Project (Fence Proj)", "name": "TAREK MOHAMMED AHMED", "nationalId": "2599829799", "personnelNo": "31291", "profession": "Electrical Crew Chief", "phone": "548990511", "chassis": "LJD0AA296S0328006", "file": "7007537371", "licenseStatus": "Valid", "inspectionStatus": "Valid"},
+  {"id": 68, "sr": 68, "plateEn": "6181 SBD", "year": 2024, "status": "Assign to project", "project": "86621 - Passive Defense Project (Fence Proj)", "name": "HASSAN MOHAMMED HASHEM ALY", "nationalId": "2559703034", "personnelNo": "31572", "profession": "Safety Officer", "phone": "533513196", "chassis": "LJD0AA296S0331522", "file": "7007537371", "licenseStatus": "Valid", "inspectionStatus": "Valid"},
+  {"id": 69, "sr": 69, "plateEn": "6182 SBD", "year": 2024, "status": "Assign to project", "project": "86621 - Passive Defense Project (Fence Proj)", "name": "HAZEM ATEF ELSHERBINI FADL", "nationalId": "2555257316", "personnelNo": "28015", "profession": "General Surveyor", "phone": "542218796", "chassis": "LJD0AA296S0331536", "file": "7007537371", "licenseStatus": "Valid", "inspectionStatus": "Valid"},
+  {"id": 70, "sr": 70, "plateEn": "6175 SBD", "year": 2024, "status": "Assign to project", "project": "844704 - GOSP Project", "name": "KATHIM NABEEL ALWOHOUSH", "nationalId": "2602685923", "personnelNo": "32292", "profession": "Site Engineer", "phone": "590104699", "chassis": "LJD0AA29XS0331524", "file": "7007537371", "licenseStatus": "Valid", "inspectionStatus": "Valid"},
+  {"id": 71, "sr": 71, "plateEn": "6144 SBD", "year": 2024, "status": "Assign to project", "project": "86606 - Unified Contract Project Dammam", "name": "EMAD HAMDI MOHAMMED", "nationalId": "2198854909", "personnelNo": "14263", "profession": "General Surveyor", "phone": "502331580", "chassis": "LJD0AA291S0294170", "file": "7007537371", "licenseStatus": "Valid", "inspectionStatus": "Valid"},
+  {"id": 72, "sr": 72, "plateEn": "6178 SBD", "year": 2025, "status": "Assign to project", "project": "86621 - Passive Defense Project (Fence Proj)", "name": "MOHAMMED RUSTAM ALI", "nationalId": "2563927496", "personnelNo": "28374", "profession": "Site Engineer", "phone": "537078206", "chassis": "LJD0AA299S0331515", "file": "7007537371", "licenseStatus": "Valid", "inspectionStatus": "Valid"},
+  {"id": 73, "sr": 73, "plateEn": "1153 AJS", "year": 2024, "status": "Assign to project", "project": "844704 - GOSP Project", "name": "MOHAMMED SHINAS NIZAR", "nationalId": "2576451690", "personnelNo": "29328", "profession": "Safety Engineer", "phone": "598166329", "chassis": "LJD0AA295S0291935", "file": "7007537371", "licenseStatus": "Valid", "inspectionStatus": "Valid"},
+  {"id": 74, "sr": 74, "plateEn": "1152 AJS", "year": 2024, "status": "Assign to project", "project": "519289 - Qatif Station 2 Project", "name": "MAHMOUD ABOULKASEM HASSANEIN", "nationalId": "2373871116", "personnelNo": "30964", "profession": "Project Manager", "phone": "502661539", "chassis": "LJD0AA295S0291952", "file": "7007537371", "licenseStatus": "Valid", "inspectionStatus": "Valid"},
+  {"id": 75, "sr": 75, "plateEn": "1131 AJS", "year": 2024, "status": "Assign to project", "project": "519272 - Al Hamra Project", "name": "AMR GAMAL ABDELSAMEI ALI", "nationalId": "2562431003", "personnelNo": "32064", "profession": "Labor Inspector", "phone": "537974824", "chassis": "LJD0AA295S0292213", "file": "7007537371", "licenseStatus": "Valid", "inspectionStatus": "Valid"},
+  {"id": 76, "sr": 76, "plateEn": "5372 UJS", "year": 2024, "status": "Assign to project", "project": "844707 - Insulation Coating Project", "name": "ATHAR MUHAMMED", "nationalId": "2536561174", "personnelNo": "26967", "profession": "Electrical Engineer QA-QC", "phone": "598130661", "chassis": "LJD0AA29XS0301231", "file": "7007537371", "licenseStatus": "Valid", "inspectionStatus": "Valid"},
+  {"id": 77, "sr": 77, "plateEn": "5373 UJS", "year": 2024, "status": "Assign to project", "project": "519272 - Al Hamra Project", "name": "KHALIFA ABDULWAHAB ALI", "nationalId": "2216263299", "personnelNo": "14796", "profession": "Site Supervisor", "phone": "551379916", "chassis": "LJD0AA29XS0301228", "file": "7007537371", "licenseStatus": "Valid", "inspectionStatus": "Valid"},
+  {"id": 78, "sr": 78, "plateEn": "5374 UJS", "year": 2024, "status": "Assign to project", "project": "519267 - The Avenues Project", "name": "AHMED ADEL ABDELHAMID", "nationalId": "2610433373", "personnelNo": "31360", "profession": "Site Engineer", "phone": "509686906", "chassis": "LJD0AA299S0301379", "file": "7007537371", "licenseStatus": "Valid", "inspectionStatus": "Valid"},
+  {"id": 79, "sr": 79, "plateEn": "1084 AJS", "year": 2025, "status": "Assign to project", "project": "519279 - Al Shiraa Project", "name": "MUHAMMAD ASIM KHAN NOOR ULLAH", "nationalId": "2592394510", "personnelNo": "32297", "profession": "Site Engineer", "phone": "558739698", "chassis": "LJD0AA297S0314650", "file": "7007537371", "licenseStatus": "Valid", "inspectionStatus": "Valid"},
+  {"id": 80, "sr": 80, "plateEn": "1082 AJS", "year": 2025, "status": "Assign to project", "project": "844705 - Al Uthmaniyah Project", "name": "NADEEM AHMED SALEEM", "nationalId": "2420193621", "personnelNo": "30938", "profession": "Safety Engineer", "phone": "532611064", "chassis": "LJD0AA297S0314673", "file": "7007537371", "licenseStatus": "Valid", "inspectionStatus": "Valid"},
+  {"id": 81, "sr": 81, "plateEn": "6734 GAS", "year": 2025, "status": "Assign to project", "project": "844705 - Al Uthmaniyah Project", "name": "MAHMOUD ABDELHAMID ABDELRAZEK", "nationalId": "2290001896", "personnelNo": "28928", "profession": "Telecom Unit Head", "phone": "509794958", "chassis": "LJD0AA297S0293889", "file": "7007537371", "licenseStatus": "Valid", "inspectionStatus": "Valid"},
+  {"id": 82, "sr": 82, "plateEn": "6735 GAS", "year": 2025, "status": "Assign to project", "project": "000000 - Dammam Warehouse", "name": "KARAM ABDO ALDUAIS", "nationalId": "2321472363", "personnelNo": "28888", "profession": "Labor Camp Supervisor", "phone": "532550557", "chassis": "LJD0AA297S0293875", "file": "7007537371", "licenseStatus": "Valid", "inspectionStatus": "Valid"},
+  {"id": 83, "sr": 83, "plateEn": "5397 UJS", "year": 2025, "status": "Assign to project", "project": "844705 - Al Uthmaniyah Project", "name": "Sufyan Mahmood Sana", "nationalId": "2386125682", "personnelNo": "20524", "profession": "Civil Engineer", "phone": "533669537", "chassis": "LJD0AA297S0315042", "file": "7007537371", "licenseStatus": "Valid", "inspectionStatus": "Valid"},
+  {"id": 84, "sr": 84, "plateEn": "5395 UJS", "year": 2025, "status": "Assign to project", "project": "844704 - GOSP Project", "name": "NOOR MOHAMMED ALYAKATHALI", "nationalId": "2583880691", "personnelNo": "29412", "profession": "Electrical Engineer QA-QC", "phone": "538731903", "chassis": "LJD0AA297S0315087", "file": "7007537371", "licenseStatus": "Valid", "inspectionStatus": "Valid"},
+  {"id": 85, "sr": 85, "plateEn": "5375 UJS", "year": 2025, "status": "Assign to project", "project": "000000 - PMO", "name": "ANWAR ALOJAIMI", "nationalId": "1003777909", "personnelNo": "10805", "profession": "HR Supervisor", "phone": "590500468", "chassis": "LJD0AA297S0301365", "file": "7007537371", "licenseStatus": "Valid", "inspectionStatus": "Valid"},
+  {"id": 86, "sr": 86, "plateEn": "2126 AJS", "year": 2025, "status": "Assign to project", "project": "86607 - Al Jubail Project", "name": "Manikandan Palanichamy", "nationalId": "2542041823", "personnelNo": "27306", "profession": "Test Engineer", "phone": "532611064", "chassis": "LJD0AA297S0333552", "file": "7007537371", "licenseStatus": "Valid", "inspectionStatus": "Valid"},
+  {"id": 87, "sr": 87, "plateEn": "2191 AJS", "year": 2025, "status": "Assign to project", "project": "844704 - GOSP Project", "name": "PRADEEP KUMAR ARAMUDHAN", "nationalId": "2618923953", "personnelNo": "31858", "profession": "Site Engineer", "phone": "541450561", "chassis": "LJD0AA297S0333350", "file": "7007537371", "licenseStatus": "Valid", "inspectionStatus": "Valid"},
+  {"id": 88, "sr": 88, "plateEn": "1081 AJS", "year": 2025, "status": "Assign to project", "project": "844706 - Al Khalidiyah Project", "name": "ABD ALRAHIM MUHAMMAD MUSTAFA", "nationalId": "2588739165", "personnelNo": "32323", "profession": "Civil Engineer QA-QC", "phone": "533924813", "chassis": "LJD0AA297S0314897", "file": "7007537371", "licenseStatus": "Valid", "inspectionStatus": "Valid"},
+  {"id": 89, "sr": 89, "plateEn": "5399 UJS", "year": 2025, "status": "Assign to project", "project": "844706 - Al Khalidiyah Project", "name": "MUHAMMAD WASIM IQBAL", "nationalId": "2549298848", "personnelNo": "32314", "profession": "Construction Manager", "phone": "539714463", "chassis": "LJD0AA297S0315017", "file": "7007537371", "licenseStatus": "Valid", "inspectionStatus": "Valid"},
+  {"id": 90, "sr": 90, "plateEn": "2128 AJS", "year": 2025, "status": "Assign to project", "project": "844704 - GOSP Project", "name": "MIAN FARHAN ALI IKRAM ULLAH", "nationalId": "2589647714", "personnelNo": "32310", "profession": "Safety Engineer", "phone": "556331456", "chassis": "LJD0AA297S0322052", "file": "7007537371", "licenseStatus": "Valid", "inspectionStatus": "Valid"},
+  {"id": 91, "sr": 91, "plateEn": "5393 UJS", "year": 2025, "status": "Assign to project", "project": "000000 - Underground", "name": "ABDULRAHMAN SALEH ALSAEEDI", "nationalId": "1140329085", "personnelNo": "32116", "profession": "Tunnel Drilling Operator", "phone": "504541279", "chassis": "LJD0AA297S0301374", "file": "7007537371", "licenseStatus": "Valid", "inspectionStatus": "Valid"},
+  {"id": 92, "sr": 92, "plateEn": "1083 AJS", "year": 2025, "status": "Assign to project", "project": "000000 - General Projects", "name": "ABDULKAREEM MOHAMMED ALEDRESI", "nationalId": "2545552438", "personnelNo": "28730", "profession": "Labor Inspector", "phone": "547326045", "chassis": "LJD0AA297S0314888", "file": "7007537371", "licenseStatus": "Valid", "inspectionStatus": "Valid"},
+  {"id": 93, "sr": 93, "plateEn": "5396 UJS", "year": 2025, "status": "Assign to project", "project": "519284 - Al Bahr Project", "name": "QAISAR AHMAD HAJI REHMAN", "nationalId": "2555344759", "personnelNo": "28892", "profession": "Safety Officer", "phone": "560473102", "chassis": "LJD0AA290S0315056", "file": "7007537371", "licenseStatus": "Valid", "inspectionStatus": "Valid"},
+  {"id": 94, "sr": 94, "plateEn": "5398 UJS", "year": 2025, "status": "Assign to project", "project": "000000 - Dammam Warehouse", "name": "KHALID MOHAMMED ALHAJRI", "nationalId": "1109368405", "personnelNo": "30228", "profession": "Security Supervisor", "phone": "537744471", "chassis": "LJD0AA290S0315025", "file": "7007537371", "licenseStatus": "Valid", "inspectionStatus": "Valid"},
+  {"id": 95, "sr": 95, "plateEn": "2127 AJS", "year": 2025, "status": "Assign to project", "project": "519271 - Project Plan 1558 (Defaf Proj.)", "name": "MOHAMMED ASHIK NOORUL HUTHA", "nationalId": "2536657519", "personnelNo": "27991", "profession": "Civil Engineer", "phone": "575051206", "chassis": "LJD0AA298S0314673", "file": "7007537371", "licenseStatus": "Valid", "inspectionStatus": "Valid"},
+  {"id": 96, "sr": 96, "plateEn": "6072 NRS", "year": 2026, "status": "Assign to project", "project": "519277 - Al Ju'aymah Project", "name": "FAHAD HAYA ALLAH ALHARTHI", "nationalId": "1123708826", "personnelNo": "29952", "profession": "Electrical Technician", "phone": "552223205", "chassis": "LJD0AA290T0378093", "file": "7018056338", "licenseStatus": "Valid", "inspectionStatus": "Valid"},
+  {"id": 97, "sr": 97, "plateEn": "6049 NRS", "year": 2026, "status": "Assign to project", "project": "519275 - Surveying and Drawing Section", "name": "Mahmoud Mohammad Abdul Hadi", "nationalId": "2240789210", "personnelNo": "15889", "profession": "General Surveyor", "phone": "591030704", "chassis": "LJD0AA290T0377929", "file": "7018056338", "licenseStatus": "Valid", "inspectionStatus": "Valid"},
+  {"id": 98, "sr": 98, "plateEn": "6048 NRS", "year": 2026, "status": "Idle", "project": "000000 - PMO", "name": "", "nationalId": "", "personnelNo": "", "profession": "", "phone": "", "chassis": "LJD0AA290T0377400", "file": "7018056338", "licenseStatus": "Valid", "inspectionStatus": "Valid"},
+  {"id": 99, "sr": 99, "plateEn": "6059 NRS", "year": 2026, "status": "Assign to project", "project": "86634 - Al Hani Project", "name": "HUSSAIN SALEM HASSAN ALIBRAHIM", "nationalId": "1083567568", "personnelNo": "26982", "profession": "Electrical Engineer", "phone": "557576349", "chassis": "LJD0AA294T0368229", "file": "7018056338", "licenseStatus": "Valid", "inspectionStatus": "Valid"},
+  {"id": 100, "sr": 100, "plateEn": "6071 NRS", "year": 2026, "status": "Idle", "project": "000000 - PMO", "name": "", "nationalId": "", "personnelNo": "", "profession": "", "phone": "", "chassis": "LJD0AA294T0368215", "file": "7018056338", "licenseStatus": "Valid", "inspectionStatus": "Valid"},
+  {"id": 101, "sr": 101, "plateEn": "6047 NRS", "year": 2026, "status": "Idle", "project": "000000 - PMO", "name": "", "nationalId": "", "personnelNo": "", "profession": "", "phone": "", "chassis": "LJD0AA290T0377395", "file": "7018056338", "licenseStatus": "Valid", "inspectionStatus": "Valid"},
+  {"id": 102, "sr": 102, "plateEn": "6058 NRS", "year": 2026, "status": "Idle", "project": "000000 - PMO", "name": "", "nationalId": "", "personnelNo": "", "profession": "", "phone": "", "chassis": "LJD0AA294T0368053", "file": "7018056338", "licenseStatus": "Valid", "inspectionStatus": "Valid"},
+  {"id": 103, "sr": 103, "plateEn": "6056 NRS", "year": 2026, "status": "Idle", "project": "000000 - PMO", "name": "", "nationalId": "", "personnelNo": "", "profession": "", "phone": "", "chassis": "LJD0AA294T0377543", "file": "7018056338", "licenseStatus": "Valid", "inspectionStatus": "Valid"},
+  {"id": 104, "sr": 104, "plateEn": "6054 NRS", "year": 2026, "status": "Assign to project", "project": "519272 - Al Hamra Project", "name": "GHULAM MURTAZA", "nationalId": "2586905958", "personnelNo": "30349", "profession": "Safety Officer", "phone": "505180859", "chassis": "LJD0AA290T0377946", "file": "7018056338", "licenseStatus": "Valid", "inspectionStatus": "Valid"},
+  {"id": 105, "sr": 105, "plateEn": "6052 NRS", "year": 2026, "status": "Idle", "project": "000000 - PMO", "name": "", "nationalId": "", "personnelNo": "", "profession": "", "phone": "", "chassis": "LJD0AA290T0377557", "file": "7018056338", "licenseStatus": "Valid", "inspectionStatus": "Valid"},
+  {"id": 106, "sr": 106, "plateEn": "6057 NRS", "year": 2026, "status": "Idle", "project": "000000 - PMO", "name": "", "nationalId": "", "personnelNo": "", "profession": "", "phone": "", "chassis": "LJD0AA290T0377722", "file": "7018056338", "licenseStatus": "Valid", "inspectionStatus": "Valid"},
+  {"id": 107, "sr": 107, "plateEn": "6053 NRS", "year": 2026, "status": "Assign to project", "project": "519289 - Qatif Station 2 Project", "name": "PALANI VEERMANI", "nationalId": "2615544653", "personnelNo": "32187", "profession": "Line Worker (Electrical/Telecom)", "phone": "578573977", "chassis": "LJD0AA290T0377719", "file": "7018056338", "licenseStatus": "Valid", "inspectionStatus": "Valid"},
+  {"id": 108, "sr": 108, "plateEn": "6073 NRS", "year": 2026, "status": "Assign to project", "project": "86621 - Passive Defense Project (Fence Proj)", "name": "MOHAMED ASHRAF ALI YOUSSEF", "nationalId": "2589425244", "personnelNo": "31535", "profession": "Site Supervisor", "phone": "564628312", "chassis": "LJD0AA290T0378076", "file": "7018056338", "licenseStatus": "Valid", "inspectionStatus": "Valid"},
+  {"id": 109, "sr": 109, "plateEn": "6055 NRS", "year": 2026, "status": "Assign to project", "project": "000000 - TEPCO", "name": "MOHAMMED ALZOABI ELETR", "nationalId": "2316838974", "personnelNo": "18111", "profession": "Site Supervisor", "phone": "546142969", "chassis": "LJD0AA290T0377560", "file": "7018056338", "licenseStatus": "Valid", "inspectionStatus": "Valid"},
+  {"id": 110, "sr": 110, "plateEn": "6051 NRS", "year": 2026, "status": "Idle", "project": "000000 - PMO", "name": "", "nationalId": "", "personnelNo": "", "profession": "", "phone": "", "chassis": "LJD0AA290T0377932", "file": "7018056338", "licenseStatus": "Valid", "inspectionStatus": "Valid"}
+];
+const PERSONNEL = {"30804": {"name": "MOHAMMED IBRAHIM HAMED BELAL", "nationalId": "2539786646", "profession": "Project Engineer", "phone": "565184041"}, "30003": {"name": "ALHASSAN ABDULRAHIM OTHMAN", "nationalId": "2077327472", "profession": "Civil Engineer QA-QC", "phone": "540742044"}, "28516": {"name": "VENKATES KASTHURI BALASUBRAMANIYAN", "nationalId": "2564123467", "profession": "Project Engineer", "phone": "559806532"}, "23375": {"name": "MAHGOUB HASSAN ABDELSAMED", "nationalId": "2397364452", "profession": "Site Engineer", "phone": "535799687"}, "32307": {"name": "MUHAMMAD KHIZIR ISHAQ", "nationalId": "2543377523", "profession": "Safety Engineer", "phone": "500966414"}, "28450": {"name": "JAYESH KUZHIYAMPLAVIL THOMAS", "nationalId": "2564119655", "profession": "Site Manager", "phone": "599164578"}, "21445": {"name": "Moath Nabeel Al shawabkeh", "nationalId": "2061386294", "profession": "Construction Manager", "phone": "541480918"}, "29604": {"name": "MUHAMMED JUBAIR", "nationalId": "2581949241", "profession": "Safety Engineer", "phone": "548486907"}, "32311": {"name": "SHAHAB KHAN IHSAN UDDIN", "nationalId": "2594409969", "profession": "Civil Engineer QA-QC", "phone": "532720621"}, "28571": {"name": "MOHEB MAHMOUD MOUSTAFA ELBANNA", "nationalId": "2555077870", "profession": "Civil Engineer", "phone": "546093966"}, "31295": {"name": "ABU BAKAR MAJEED ABDUL MAJEED KHAN", "nationalId": "2565641418", "profession": "Safety Officer", "phone": "554837863"}, "14164": {"name": "RAJAMUHAMMAD FAROOQ RAZZAQ", "nationalId": "2191869201", "profession": "Electrician", "phone": "551649275"}, "28887": {"name": "ADEL IBRAHIM ELSAYED TORAB", "nationalId": "2388768794", "profession": "Site Manager", "phone": "564286913"}, "29551": {"name": "MOHAMMED EHTESHAM", "nationalId": "2545287100", "profession": "Civil Engineer QA-QC", "phone": "535038264"}, "29743": {"name": "ABDULLA AHMED ZIYADAH", "nationalId": "2144086358", "profession": "Civil Engineer QA-QC", "phone": "561573087"}, "32217": {"name": "MUJIBUR RAHMAN", "nationalId": "2617930413", "profession": "Project Engineer", "phone": "544610984"}, "27902": {"name": "JAISON JEEVAN", "nationalId": "2553016193", "profession": "Project Engineer", "phone": "509325637"}, "32287": {"name": "MUHAMMAD ILYAS RUSTAM ALI", "nationalId": "2577062868", "profession": "Electrical Engineer QA-QC", "phone": "568086716"}, "28483": {"name": "ANEES UR REHMAN", "nationalId": "2539646246", "profession": "Safety Engineer", "phone": "536923096"}, "27174": {"name": "FAZREEN AHAMED MOHIDEEN", "nationalId": "2539660585", "profession": "Test Engineer", "phone": "568467129"}, "21987": {"name": "Darping Mustapha", "nationalId": "2324787148", "profession": "Civil Engineer QA-QC", "phone": "594617513"}, "29022": {"name": "MOHAMMED DANYAL BALOCH", "nationalId": "2575252123", "profession": "Electrical Engineer", "phone": "532375601"}, "29076": {"name": "BELAL ALSAYED ELAGAMY ALI", "nationalId": "2556397814", "profession": "Civil Engineer", "phone": "545006547"}, "28447": {"name": "AZIZ UR REHMAN KAUSAR", "nationalId": "2564119895", "profession": "Electrical Engineer", "phone": "563362505"}, "29639": {"name": "MUHAMMAD ABDUL REHMAN KHAN", "nationalId": "2581952138", "profession": "Fiber Optics Technician", "phone": "598273016"}, "29172": {"name": "MUHAMMAD BILAL KHAN", "nationalId": "2520298494", "profession": "Safety Officer", "phone": "510250185"}, "30414": {"name": "ESLAM NAGATY MAMOUN", "nationalId": "2587969722", "profession": "Safety Officer", "phone": "572737468"}, "29673": {"name": "SHABAS HAKKIM", "nationalId": "2581948623", "profession": "Safety Officer", "phone": "556472768"}, "29171": {"name": "AHMED AFIFI SHABAAN ELKATTAN", "nationalId": "2562688032", "profession": "Electrical Engineer QA-QC", "phone": "570746189"}, "29929": {"name": "MOHAMMED JASSIM ALQATIFI", "nationalId": "1010607719", "profession": "Project Engineer", "phone": "554710993"}, "22304": {"name": "Zeeshan Abbasi", "nationalId": "2423951298", "profession": "Safety Engineer", "phone": "550137726"}, "28890": {"name": "KHALED BASUONI ELSHENAWY", "nationalId": "2559045279", "profession": "Civil Engineer", "phone": "536672291"}, "22131": {"name": "Syed Khadeer Syed Habeeb", "nationalId": "2425425408", "profession": "Electrical Engineer QA-QC", "phone": "554204602"}, "30196": {"name": "HUSSAIN ABDULELAH ALBOALI", "nationalId": "1093629614", "profession": "Civil Engineer QA-QC", "phone": "534338681"}, "32302": {"name": "NADHAR SHAH NAZEER", "nationalId": "2538586385", "profession": "Site Engineer", "phone": "508774693"}, "30447": {"name": "KHALED AHMED KHALIFA", "nationalId": "2386049387", "profession": "Safety Engineer", "phone": "553111724"}, "31590": {"name": "MORTATHA RASOUL ALTURIFI", "nationalId": "1113549362", "profession": "Civil Engineer QA-QC", "phone": "539244002"}, "28921": {"name": "MUHAMMAD WASIM FAREED", "nationalId": "2554972766", "profession": "Safety Officer", "phone": "597639352"}, "29327": {"name": "SYED MUHAMMAD ALI HAIDER", "nationalId": "2576451575", "profession": "Site Engineer", "phone": "531091045"}, "22712": {"name": "Salem Saeed Alqahtani", "nationalId": "1039368855", "profession": "Admin Services Supervisor", "phone": "501511546"}, "25369": {"name": "NOUR BASSAM YOUNESS", "nationalId": "2117605077", "profession": "Electrical Engineer", "phone": "556036085"}, "26392": {"name": "SHEKH AMAMUL HAK", "nationalId": "2529460426", "profession": "13.8kV Cable Technician", "phone": "557864739"}, "17810": {"name": "Mohammad Mohee Yousef", "nationalId": "2311216820", "profession": "Operations Coordinator", "phone": "533965667"}, "31067": {"name": "MOSAB MOHAMMED BADR", "nationalId": "2542470535", "profession": "Site Engineer", "phone": "570867141"}, "23725": {"name": "YASIR MEHMOOD LATIF", "nationalId": "2236511420", "profession": "Electrician", "phone": "582579963"}, "28801": {"name": "KHALAF ABDULLAH ALSHAMMARI", "nationalId": "1007723982", "profession": "Admin Services Supervisor", "phone": "503774883"}, "27183": {"name": "MOHAMMED EID ALWAKIL", "nationalId": "2540988488", "profession": "Electrician", "phone": "569154303"}, "32372": {"name": "AHMED RAMZI ALI MOHAMED", "nationalId": "2311925628", "profession": "Directional Drilling Supervisor", "phone": "567402206"}, "32421": {"name": "NADEEM AHMAD KHAN", "nationalId": "2542506445", "profession": "QA/QC Electrical Engineer", "phone": "565513624"}, "31382": {"name": "AHMED ABDULLAH ALYOUSEF", "nationalId": "1106988007", "profession": "Civil Engineer", "phone": "592665897"}, "32308": {"name": "MUHAMMAD RIZWAN IBRAHEEM", "nationalId": "2610772598", "profession": "Site Engineer", "phone": "580254213"}, "30894": {"name": "HOSSAM ELDIN ANTAR SALAMA", "nationalId": "2515655658", "profession": "Project Engineer", "phone": "534162640"}, "30969": {"name": "MOHAMMED MEHBOOB ASGHAR ZIA", "nationalId": "2594004430", "profession": "Civil Engineer QA-QC", "phone": "550221671"}, "23791": {"name": "FAHAD ABDULLAH ALDARWISH", "nationalId": "1112285240", "profession": "Safety Officer", "phone": "544146938"}, "29844": {"name": "ABDULMAJEED ALSHAMMARI", "nationalId": "1105649501", "profession": "Electrical Engineer", "phone": "541264772"}, "28891": {"name": "MIAN SABIR SHAH", "nationalId": "2532315146", "profession": "Safety Officer", "phone": "509589109"}, "24922": {"name": "SHAKEEL AHAMED ATHULLA SAHEB", "nationalId": "2271279057", "profession": "Electrical Engineer", "phone": "572919186"}, "32291": {"name": "ADNAN HASSAN LAILA", "nationalId": "2163628429", "profession": "Projects Coordinator", "phone": "532077288"}, "29023": {"name": "SHAHABAS ALI MOHAMMED", "nationalId": "2568325894", "profession": "Safety Engineer", "phone": "560093361"}, "32286": {"name": "ARIF CHANGANASSERY HAMSA", "nationalId": "2566397523", "profession": "Safety Officer", "phone": "574013348"}, "28584": {"name": "ABDULRAHMAN SALEH ALSHAMMARI", "nationalId": "1093258844", "profession": "HDD Unit Head", "phone": "532303837"}, "20522": {"name": "Muhammad Ahsan Ibraheem", "nationalId": "2384391088", "profession": "Electronics & Telecom Engineer", "phone": "547574927"}, "31730": {"name": "MUHAMMED SHAN SHAMSUDEEN", "nationalId": "2354764967", "profession": "Safety Officer", "phone": "572669821"}, "31929": {"name": "TAREK YAHIA ABDALLA OTHMAN", "nationalId": "2485980433", "profession": "Safety Officer", "phone": "541847621"}, "31291": {"name": "TAREK MOHAMMED AHMED", "nationalId": "2599829799", "profession": "Electrical Crew Chief", "phone": "548990511"}, "31572": {"name": "HASSAN MOHAMMED HASHEM ALY", "nationalId": "2559703034", "profession": "Safety Officer", "phone": "533513196"}, "28015": {"name": "HAZEM ATEF ELSHERBINI FADL", "nationalId": "2555257316", "profession": "General Surveyor", "phone": "542218796"}, "32292": {"name": "KATHIM NABEEL ALWOHOUSH", "nationalId": "2602685923", "profession": "Site Engineer", "phone": "590104699"}, "14263": {"name": "EMAD HAMDI MOHAMMED", "nationalId": "2198854909", "profession": "General Surveyor", "phone": "502331580"}, "28374": {"name": "MOHAMMED RUSTAM ALI", "nationalId": "2563927496", "profession": "Site Engineer", "phone": "537078206"}, "29328": {"name": "MOHAMMED SHINAS NIZAR", "nationalId": "2576451690", "profession": "Safety Engineer", "phone": "598166329"}, "30964": {"name": "MAHMOUD ABOULKASEM HASSANEIN", "nationalId": "2373871116", "profession": "Project Manager", "phone": "502661539"}, "32064": {"name": "AMR GAMAL ABDELSAMEI ALI", "nationalId": "2562431003", "profession": "Labor Inspector", "phone": "537974824"}, "26967": {"name": "ATHAR MUHAMMED", "nationalId": "2536561174", "profession": "Electrical Engineer QA-QC", "phone": "598130661"}, "14796": {"name": "KHALIFA ABDULWAHAB ALI", "nationalId": "2216263299", "profession": "Site Supervisor", "phone": "551379916"}, "31360": {"name": "AHMED ADEL ABDELHAMID", "nationalId": "2610433373", "profession": "Site Engineer", "phone": "509686906"}, "32297": {"name": "MUHAMMAD ASIM KHAN NOOR ULLAH", "nationalId": "2592394510", "profession": "Site Engineer", "phone": "558739698"}, "30938": {"name": "NADEEM AHMED SALEEM", "nationalId": "2420193621", "profession": "Safety Engineer", "phone": "532611064"}, "28928": {"name": "MAHMOUD ABDELHAMID ABDELRAZEK", "nationalId": "2290001896", "profession": "Telecom Unit Head", "phone": "509794958"}, "28888": {"name": "KARAM ABDO ALDUAIS", "nationalId": "2321472363", "profession": "Labor Camp Supervisor", "phone": "532550557"}, "20524": {"name": "Sufyan Mahmood Sana", "nationalId": "2386125682", "profession": "Civil Engineer", "phone": "533669537"}, "29412": {"name": "NOOR MOHAMMED ALYAKATHALI", "nationalId": "2583880691", "profession": "Electrical Engineer QA-QC", "phone": "538731903"}, "10805": {"name": "ANWAR ALOJAIMI", "nationalId": "1003777909", "profession": "HR Supervisor", "phone": "590500468"}, "27306": {"name": "Manikandan Palanichamy", "nationalId": "2542041823", "profession": "Test Engineer", "phone": "532611064"}, "31858": {"name": "PRADEEP KUMAR ARAMUDHAN", "nationalId": "2618923953", "profession": "Site Engineer", "phone": "541450561"}, "32323": {"name": "ABD ALRAHIM MUHAMMAD MUSTAFA", "nationalId": "2588739165", "profession": "Civil Engineer QA-QC", "phone": "533924813"}, "32314": {"name": "MUHAMMAD WASIM IQBAL", "nationalId": "2549298848", "profession": "Construction Manager", "phone": "539714463"}, "32310": {"name": "MIAN FARHAN ALI IKRAM ULLAH", "nationalId": "2589647714", "profession": "Safety Engineer", "phone": "556331456"}, "32116": {"name": "ABDULRAHMAN SALEH ALSAEEDI", "nationalId": "1140329085", "profession": "Tunnel Drilling Operator", "phone": "504541279"}, "28730": {"name": "ABDULKAREEM MOHAMMED ALEDRESI", "nationalId": "2545552438", "profession": "Labor Inspector", "phone": "547326045"}, "28892": {"name": "QAISAR AHMAD HAJI REHMAN", "nationalId": "2555344759", "profession": "Safety Officer", "phone": "560473102"}, "30228": {"name": "KHALID MOHAMMED ALHAJRI", "nationalId": "1109368405", "profession": "Security Supervisor", "phone": "537744471"}, "27991": {"name": "MOHAMMED ASHIK NOORUL HUTHA", "nationalId": "2536657519", "profession": "Civil Engineer", "phone": "575051206"}, "29952": {"name": "FAHAD HAYA ALLAH ALHARTHI", "nationalId": "1123708826", "profession": "Electrical Technician", "phone": "552223205"}, "15889": {"name": "Mahmoud Mohammad Abdul Hadi", "nationalId": "2240789210", "profession": "General Surveyor", "phone": "591030704"}, "26982": {"name": "HUSSAIN SALEM HASSAN ALIBRAHIM", "nationalId": "1083567568", "profession": "Electrical Engineer", "phone": "557576349"}, "30349": {"name": "GHULAM MURTAZA", "nationalId": "2586905958", "profession": "Safety Officer", "phone": "505180859"}, "32187": {"name": "PALANI VEERMANI", "nationalId": "2615544653", "profession": "Line Worker (Electrical/Telecom)", "phone": "578573977"}, "31535": {"name": "MOHAMED ASHRAF ALI YOUSSEF", "nationalId": "2589425244", "profession": "Site Supervisor", "phone": "564628312"}, "18111": {"name": "MOHAMMED ALZOABI ELETR", "nationalId": "2316838974", "profession": "Site Supervisor", "phone": "546142969"}};
+
+let data = JSON.parse(localStorage.getItem('fleet_v9')||'null') || JSON.parse(JSON.stringify(SEED));
+let nextId = Math.max(...data.map(d=>d.id))+1;
+let sf='sr', sd=1, editId=null, delId=null;
+
+const save = () => localStorage.setItem('fleet_v9', JSON.stringify(data));
+
+// ── PERSONNEL AUTOFILL ──
+function lookupPersonnel(val){
+  const pn = val.trim();
+  const statusEl = document.getElementById('pnStatus');
+
+  // Clear if empty
+  if(!pn){
+    statusEl.textContent = '';
+    clearPersonnelFields();
+    return;
+  }
+
+  const person = PERSONNEL[pn];
+  if(person){
+    fillField('fNm', person.name);
+    fillField('fNI', person.nationalId);
+    fillField('fRo', person.profession);
+    fillField('fPh', person.phone);
+    statusEl.textContent = '✅';
+    showBanner();
+  } else {
+    statusEl.textContent = pn.length >= 4 ? '❌' : '';
+    clearPersonnelFields();
+  }
+}
+
+function fillField(id, value){
+  const el = document.getElementById(id);
+  el.value = value || '';
+  el.classList.remove('autofilled');
+  // force reflow so animation restarts
+  void el.offsetWidth;
+  el.classList.add('autofilled');
+}
+
+function clearPersonnelFields(){
+  ['fNm','fNI','fRo','fPh'].forEach(id=>{
+    const el=document.getElementById(id);
+    el.value='';
+    el.classList.remove('autofilled');
+  });
+}
+
+let bannerTimer=null;
+function showBanner(){
+  let b=document.getElementById('autofillBanner');
+  if(!b){
+    b=document.createElement('div');
+    b.id='autofillBanner';
+    b.style.cssText='position:fixed;top:70px;left:50%;transform:translateX(-50%);background:#059669;color:#fff;padding:.5rem 1.2rem;border-radius:20px;font-size:.8rem;font-weight:700;z-index:9999;box-shadow:0 4px 16px rgba(0,0,0,.2);animation:bannerIn .3s ease';
+    b.textContent='✅ Personnel found — fields auto-filled';
+    document.body.appendChild(b);
+    if(!document.getElementById('bannerStyle')){
+      const s=document.createElement('style');
+      s.id='bannerStyle';
+      s.textContent='@keyframes bannerIn{from{opacity:0;top:60px}to{opacity:1;top:70px}}@keyframes bannerOut{to{opacity:0;top:60px}}';
+      document.head.appendChild(s);
+    }
+  }
+  b.style.animation='bannerIn .3s ease';
+  clearTimeout(bannerTimer);
+  bannerTimer=setTimeout(()=>{
+    b.style.animation='bannerOut .3s ease forwards';
+    setTimeout(()=>{if(b)b.remove();},300);
+  },2200);
+}
+
+// ── FILTER ──
+function getF(){
+  const q    = document.getElementById('q').value.toLowerCase().trim();
+  const fS   = document.getElementById('fS').value;
+  const fY   = document.getElementById('fY').value;
+  const fPrj = document.getElementById('fPrj').value;
+  return data.filter(v=>{
+    if(q&&![v.plateEn,v.name,v.project,v.chassis,v.nationalId,v.profession,v.phone,v.personnelNo,v.file].some(f=>(f||'').toLowerCase().includes(q)))return false;
+    if(fS  && v.status!==fS) return false;
+    if(fY  && v.year.toString()!==fY) return false;
+    if(fPrj && v.project!==fPrj) return false;
+    return true;
+  });
+}
+
+// ── RENDER ──
+function render(){
+  const rows=getF();
+  rows.sort((a,b)=>{
+    const av=(a[sf]||'').toString().toLowerCase(),bv=(b[sf]||'').toString().toLowerCase();
+    return av<bv?-sd:av>bv?sd:0;
+  });
+
+  const tot  = data.length;
+  const asgn = data.filter(v=>v.status==='Assign to project').length;
+  const idle = data.filter(v=>v.status==='Idle').length;
+  const projs= new Set(data.map(v=>v.project).filter(p=>p&&!p.startsWith('000000'))).size;
+
+  document.getElementById('s-tot').textContent   = tot;
+  document.getElementById('s-asgn').textContent  = asgn;
+  document.getElementById('s-idle').textContent  = idle;
+  document.getElementById('s-proj').textContent  = projs;
+  document.getElementById('b-asgn').style.width  = (asgn/tot*100)+'%';
+  document.getElementById('b-idle').style.width  = (idle/tot*100)+'%';
+  document.getElementById('shown').textContent   = rows.length;
+  document.getElementById('tot-info').textContent= tot;
+
+  document.querySelectorAll('thead th').forEach(t=>t.classList.remove('sort-asc','sort-desc'));
+  const th=document.getElementById('th-'+sf);
+  if(th) th.classList.add(sd===1?'sort-asc':'sort-desc');
+
+  const tb=document.getElementById('tb');
+  if(!rows.length){
+    tb.innerHTML=`<tr><td colspan="10"><div class="empty"><div class="empty-ic">🔍</div><div>No matching vehicles</div></div></td></tr>`;
+    return;
+  }
+  tb.innerHTML=rows.map(v=>{
+    const ia=v.status==='Assign to project';
+    return`<tr>
+      <td class="mono-cell" style="color:#777">${v.sr}</td>
+      <td><span class="plate">${v.plateEn}</span></td>
+      <td class="mono-cell">${v.year}</td>
+      <td><span class="badge ${ia?'b-asgn':'b-idle'}">${ia?'Assigned':'Idle'}</span></td>
+      <td><div class="proj-cell" title="${v.project||''}">${v.project||'—'}</div></td>
+      <td><div class="name-cell" title="${v.name||''}">${v.name||'—'}</div></td>
+      <td class="mono-cell">${v.personnelNo||'—'}</td>
+      <td><div class="role-cell" title="${v.profession||''}">${v.profession||'—'}</div></td>
+      <td><div style="max-width:180px;overflow:hidden;text-overflow:ellipsis;font-size:.78rem;white-space:nowrap" title="${v.notes||''}">${v.notes||'—'}</div></td>
+      <td>${v.phone?`<a class="ph-link" href="tel:+966${v.phone}">+966${v.phone}</a>`:'—'}</td>
+      <td><div class="acts">
+        <button class="btn btn-ghost  btn-sm btn-icon" title="View"   onclick="openDet(${v.id})">👁</button>
+        <button class="btn btn-warn   btn-sm btn-icon" title="Edit"   onclick="openEdit(${v.id})">✏️</button>
+        <button class="btn btn-danger btn-sm btn-icon" title="Delete" onclick="confDel(${v.id})">🗑</button>
+      </div></td>
+    </tr>`;
+  }).join('');
+  document.getElementById('ts').textContent='Updated '+new Date().toLocaleTimeString();
+}
+
+function sortBy(f){if(sf===f)sd*=-1;else{sf=f;sd=1;}render();}
+
+// ── ADD ──
+function openAdd(){
+  editId=null;
+  document.getElementById('eIcon').textContent='🚗';
+  document.getElementById('eTitle').textContent='Add New Vehicle';
+  clearForm();
+  document.getElementById('editOv').classList.add('open');
+}
+
+// ── EDIT ──
+function openEdit(id){
+  const v=data.find(x=>x.id===id);if(!v)return;
+  editId=id;
+  document.getElementById('eIcon').textContent='✏️';
+  document.getElementById('eTitle').textContent='Edit — '+v.plateEn;
+  document.getElementById('fPE').value=v.plateEn||'';
+  document.getElementById('fYr').value=v.year||2026;
+  document.getElementById('fFl').value=v.file||'';
+  document.getElementById('fCh').value=v.chassis||'';
+
+  document.getElementById('fSt').value=v.status||'Assign to project';
+  document.getElementById('fPr').value=v.project||'';
+  document.getElementById('fPN').value=v.personnelNo||'';
+  document.getElementById('fNm').value=v.name||'';
+  document.getElementById('fNI').value=v.nationalId||'';
+  document.getElementById('fRo').value=v.profession||'';
+  document.getElementById('fPh').value=v.phone||'';
+  document.getElementById('fNotes').value=v.notes||'';
+  document.getElementById('pnStatus').textContent=v.personnelNo?'✅':'';
+  toggleProj(); closeDet();
+  document.getElementById('editOv').classList.add('open');
+}
+
+function closeEdit(){document.getElementById('editOv').classList.remove('open');}
+
+function clearForm(){
+  ['fPE','fFl','fCh','fPN','fNm','fNI','fRo','fPh','fNotes'].forEach(id=>{
+    const el=document.getElementById(id);
+    el.value='';
+    el.classList.remove('autofilled');
+    el.dataset.autofilled='false';
+  });
+  document.getElementById('fYr').value='2026';
+
+  document.getElementById('fSt').value='Assign to project';
+  document.getElementById('fPr').value='';
+  document.getElementById('pnStatus').textContent='';
+  toggleProj();
+}
+
+function toggleProj(){
+  const idle=document.getElementById('fSt').value==='Idle';
+  document.getElementById('projF').style.opacity=idle?.4:1;
+  document.getElementById('fPr').disabled=idle;
+}
+
+// ── SAVE ──
+function saveVehicle(){
+  const pe=document.getElementById('fPE').value.trim();
+  if(!pe){toast('Plate number is required','error');return;}
+  const v={
+    plateEn:pe,
+    year:parseInt(document.getElementById('fYr').value),
+    file:document.getElementById('fFl').value.trim(),
+    chassis:document.getElementById('fCh').value.trim(),
+
+    status:document.getElementById('fSt').value,
+    project:document.getElementById('fPr').value,
+    personnelNo:document.getElementById('fPN').value.trim(),
+    name:document.getElementById('fNm').value.trim(),
+    nationalId:document.getElementById('fNI').value.trim(),
+    profession:document.getElementById('fRo').value.trim(),
+    phone:document.getElementById('fPh').value.trim(),
+    notes:document.getElementById('fNotes').value.trim()
+  };
+  if(editId){
+    const i=data.findIndex(x=>x.id===editId);
+    if(i>-1)data[i]={...data[i],...v};
+    toast('Vehicle updated','success');
+  } else {
+    data.push({id:nextId++,sr:data.length?Math.max(...data.map(d=>d.sr))+1:1,...v});
+    toast('Vehicle added','success');
+  }
+  save();render();closeEdit();
+}
+
+// ── DETAIL ──
+function openDet(id){
+  const v=data.find(x=>x.id===id);if(!v)return;
+  const ia=v.status==='Assign to project';
+  document.getElementById('dTitle').textContent=v.plateEn+' — Details';
+  document.getElementById('dBody').innerHTML=`
+    <div class="d-sec">Vehicle Information</div>
+    <div class="d-grid">
+      <div><div class="d-lbl">Plate No.</div><div class="d-val" style="font-family:'JetBrains Mono',monospace">${v.plateEn}</div></div>
+      <div><div class="d-lbl">Year</div><div class="d-val" style="font-family:'JetBrains Mono',monospace">${v.year}</div></div>
+      <div class="d-full"><div class="d-lbl">Chassis / VIN</div><div class="d-val" style="font-family:'JetBrains Mono',monospace;font-size:.8rem">${v.chassis||'—'}</div></div>
+      <div><div class="d-lbl">File No.</div><div class="d-val" style="font-family:'JetBrains Mono',monospace">${v.file||'—'}</div></div>
+
+    </div>
+    <div class="d-sec">Assignment</div>
+    <div class="d-grid">
+      <div><div class="d-lbl">Status</div><div class="d-val"><span class="badge ${ia?'b-asgn':'b-idle'}">${ia?'Assigned':'Idle'}</span></div></div>
+      <div class="d-full"><div class="d-lbl">Project</div><div class="d-val">${v.project||'—'}</div></div>
+    </div>
+    ${v.name||v.personnelNo?`
+    <div class="d-sec">Assigned Personnel</div>
+    <div class="d-grid">
+      <div><div class="d-lbl">Personnel No.</div><div class="d-val" style="font-family:'JetBrains Mono',monospace">${v.personnelNo||'—'}</div></div>
+      <div class="d-full"><div class="d-lbl">Full Name</div><div class="d-val">${v.name||'—'}</div></div>
+      <div><div class="d-lbl">National ID</div><div class="d-val" style="font-family:'JetBrains Mono',monospace">${v.nationalId||'—'}</div></div>
+      <div class="d-full"><div class="d-lbl">Job Title</div><div class="d-val">${v.profession||'—'}</div></div>
+      ${v.phone?`<div class="d-full"><div class="d-lbl">Phone</div><div class="d-val"><a class="ph-link" style="font-size:.88rem" href="tel:+966${v.phone}">+966${v.phone}</a></div></div>`:''}
+      ${v.notes?`<div class="d-full" style="margin-top:.5rem"><div class="d-lbl">Note</div><div class="d-val">${v.notes}</div></div>`:''}
+    </div>`:''}
+  `;
+  document.getElementById('dEditBtn').onclick=()=>openEdit(id);
+  document.getElementById('dDelBtn').onclick=()=>confDel(id);
+  document.getElementById('detOv').classList.add('open');
+}
+function closeDet(){document.getElementById('detOv').classList.remove('open');}
+
+// ── DELETE ──
+function confDel(id){
+  delId=id;
+  const v=data.find(x=>x.id===id);
+  document.getElementById('confMsg').textContent=`Delete vehicle ${v?.plateEn||''}? This cannot be undone.`;
+  document.getElementById('confOk').onclick=doDel;
+  document.getElementById('confOv').classList.add('open');
+}
+function closeConf(){document.getElementById('confOv').classList.remove('open');delId=null;}
+function doDel(){
+  if(!delId)return;
+  data=data.filter(x=>x.id!==delId);
+  save();render();closeConf();closeDet();
+  toast('Vehicle deleted','info');
+}
+
+function closeBg(e,ovId,fn){if(e.target===document.getElementById(ovId))window[fn]();}
+
+// ── EXPORT ──
+function exportCSV(){
+  const cols=['sr','plateEn','year','status','project','name','personnelNo','nationalId','profession','phone','chassis','file','notes'];
+  const rows=[cols.join(','),...data.map(v=>cols.map(c=>`"${(v[c]||'').toString().replace(/"/g,'""')}"`).join(','))];
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(new Blob([rows.join('\n')],{type:'text/csv'}));
+  a.download=`fleet_${new Date().toISOString().slice(0,10)}.csv`;
+  a.click();
+  toast('CSV exported','success');
+}
+
+// ── TOAST ──
+function toast(msg,type='info'){
+  const ic={success:'✅',error:'❌',info:'ℹ️'};
+  const el=document.createElement('div');
+  el.className=`toast ${type}`;
+  el.innerHTML=`<span>${ic[type]}</span><span>${msg}</span>`;
+  document.getElementById('toasts').appendChild(el);
+  setTimeout(()=>{el.style.animation='tOut .3s ease forwards';setTimeout(()=>el.remove(),300);},2800);
+}
+
+document.addEventListener('keydown',e=>{
+  if(e.key==='Escape'){closeEdit();closeDet();closeConf();}
+  if((e.ctrlKey||e.metaKey)&&e.key==='k'){e.preventDefault();document.getElementById('q').focus();}
+});
+
+render();
+</script>
+</body>
+</html>
