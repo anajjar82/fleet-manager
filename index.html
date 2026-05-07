@@ -6,7 +6,7 @@
 
 <body>
 
-<!-- ✅ LOGIN -->
+<!-- ✅ LOGIN SCREEN -->
 <div id="loginPage" style="position:fixed;inset:0;background:#f0f6ff;display:flex;align-items:center;justify-content:center;">
   <div style="background:#fff;padding:30px;border-radius:10px;width:300px">
     <h2>Login</h2>
@@ -17,28 +17,40 @@
   </div>
 </div>
 
-<h1>Fleet Manager</h1>
+<h1>✅ Fleet Manager System</h1>
 
-<button onclick="addVehicle()">Add Test Vehicle</button>
+<button onclick="addVehicle()">Add Vehicle</button>
 
 <ul id="list"></ul>
 
-<!-- ✅ FIREBASE (CORRECT VERSION) -->
+<!-- ✅ CORRECT FIREBASE SCRIPTS -->
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
-https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js
-https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
 
 <script>
+// ✅ Firebase config
 const firebaseConfig = {
   apiKey: "AIzaSyAYFljCo5BrMojIWMZ5mkZtqo6hxfE8iK8",
   authDomain: "fleet-manager-9b160.firebaseapp.com",
   projectId: "fleet-manager-9b160"
 };
 
+// ✅ Initialize Firebase
 firebase.initializeApp(firebaseConfig);
 
-const db = firebase.firestore();
 const auth = firebase.auth();
+const db = firebase.firestore();
+
+// ✅ REGISTER
+function register(){
+  const email = document.getElementById('email').value;
+  const pass = document.getElementById('password').value;
+
+  auth.createUserWithEmailAndPassword(email, pass)
+    .then(()=> alert("✅ User created! Now login"))
+    .catch(err => alert(err.message));
+}
 
 // ✅ LOGIN
 function login(){
@@ -46,48 +58,42 @@ function login(){
   const pass = document.getElementById('password').value;
 
   auth.signInWithEmailAndPassword(email, pass)
+    .then(()=>{
+      alert("✅ Login successful");
+    })
     .catch(err => alert(err.message));
 }
 
-function register(){
-  const email = document.getElementById('email').value;
-  const pass = document.getElementById('password').value;
-
-  auth.createUserWithEmailAndPassword(email, pass)
-    .then(()=> alert("User created ✅"))
-    .catch(err => alert(err.message));
-}
-
-// ✅ AUTH CHECK
+// ✅ AUTO LOGIN STATE
 auth.onAuthStateChanged(user => {
   if(user){
-    document.getElementById('loginPage').style.display='none';
+    document.getElementById('loginPage').style.display = 'none';
     loadData();
   } else {
-    document.getElementById('loginPage').style.display='flex';
+    document.getElementById('loginPage').style.display = 'flex';
   }
 });
 
-// ✅ LOAD DATA (REAL-TIME)
+// ✅ LOAD DATA (real-time)
 function loadData(){
   db.collection("vehicles").onSnapshot(snapshot => {
-    const list = document.getElementById('list');
+    const list = document.getElementById("list");
     list.innerHTML = "";
 
     snapshot.forEach(doc => {
       const v = doc.data();
 
       const li = document.createElement("li");
-      li.textContent = v.plate;
+      li.textContent = v.name;
       list.appendChild(li);
     });
   });
 }
 
-// ✅ ADD DATA
+// ✅ ADD VEHICLE
 function addVehicle(){
   db.collection("vehicles").add({
-    plate: "TEST-" + Math.floor(Math.random()*1000)
+    name: "Vehicle " + Math.floor(Math.random()*1000)
   });
 }
 </script>
