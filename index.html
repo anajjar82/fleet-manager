@@ -1,100 +1,96 @@
-<!-- ✅ ADD THIS AT VERY BOTTOM BEFORE </body> -->
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Fleet Manager</title>
+</head>
 
-<!-- Firebase CDN -->
+<body>
+
+<!-- ✅ LOGIN -->
+<div id="loginPage" style="position:fixed;inset:0;background:#f0f6ff;display:flex;align-items:center;justify-content:center;">
+  <div style="background:#fff;padding:30px;border-radius:10px;width:300px">
+    <h2>Login</h2>
+    <input id="email" placeholder="Email" style="width:100%;margin-bottom:10px">
+    <input id="password" type="password" placeholder="Password" style="width:100%;margin-bottom:10px">
+    <button onclick="login()" style="width:100%">Login</button>
+    <button onclick="register()" style="width:100%;margin-top:10px">Register</button>
+  </div>
+</div>
+
+<h1>Fleet Manager</h1>
+
+<button onclick="addVehicle()">Add Test Vehicle</button>
+
+<ul id="list"></ul>
+
+<!-- ✅ FIREBASE (CORRECT VERSION) -->
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js
+https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js
 
 <script>
-// ✅ Firebase Config
 const firebaseConfig = {
   apiKey: "AIzaSyAYFljCo5BrMojIWMZ5mkZtqo6hxfE8iK8",
   authDomain: "fleet-manager-9b160.firebaseapp.com",
-  projectId: "fleet-manager-9b160",
-  storageBucket: "fleet-manager-9b160.appspot.com",
-  messagingSenderId: "906597586610",
-  appId: "1:906597586610:web:dbbffe5543c86599b19bab"
+  projectId: "fleet-manager-9b160"
 };
 
-// ✅ Initialize Firebase
 firebase.initializeApp(firebaseConfig);
+
 const db = firebase.firestore();
+const auth = firebase.auth();
 
-// ========================
-// ✅ GLOBAL DATA
-// ========================
-let data = [];
-let editId = null;
-let delId = null;
+// ✅ LOGIN
+function login(){
+  const email = document.getElementById('email').value;
+  const pass = document.getElementById('password').value;
 
-// ========================
-// ✅ REAL-TIME LOAD (BEST)
-// ========================
-function loadFromDB() {
-  db.collection("vehicles").onSnapshot((snapshot) => {
-    data = [];
-    snapshot.forEach((doc) => {
-      let v = doc.data();
-      v.id = doc.id;
-      data.push(v);
+  auth.signInWithEmailAndPassword(email, pass)
+    .catch(err => alert(err.message));
+}
+
+function register(){
+  const email = document.getElementById('email').value;
+  const pass = document.getElementById('password').value;
+
+  auth.createUserWithEmailAndPassword(email, pass)
+    .then(()=> alert("User created ✅"))
+    .catch(err => alert(err.message));
+}
+
+// ✅ AUTH CHECK
+auth.onAuthStateChanged(user => {
+  if(user){
+    document.getElementById('loginPage').style.display='none';
+    loadData();
+  } else {
+    document.getElementById('loginPage').style.display='flex';
+  }
+});
+
+// ✅ LOAD DATA (REAL-TIME)
+function loadData(){
+  db.collection("vehicles").onSnapshot(snapshot => {
+    const list = document.getElementById('list');
+    list.innerHTML = "";
+
+    snapshot.forEach(doc => {
+      const v = doc.data();
+
+      const li = document.createElement("li");
+      li.textContent = v.plate;
+      list.appendChild(li);
     });
-    render();
   });
 }
 
-// ========================
-// ✅ SAVE VEHICLE
-// ========================
-function saveVehicle(){
-  const pe = document.getElementById('fPE').value.trim();
-  if(!pe){
-    toast('Plate number is required','error');
-    return;
-  }
-
-  const v = {
-    plateEn:pe,
-    year:parseInt(document.getElementById('fYr').value),
-    file:document.getElementById('fFl').value.trim(),
-    chassis:document.getElementById('fCh').value.trim(),
-    status:document.getElementById('fSt').value,
-    project:document.getElementById('fPr').value,
-    personnelNo:document.getElementById('fPN').value.trim(),
-    name:document.getElementById('fNm').value.trim(),
-    nationalId:document.getElementById('fNI').value.trim(),
-    profession:document.getElementById('fRo').value.trim(),
-    phone:document.getElementById('fPh').value.trim(),
-    notes:document.getElementById('fNotes').value.trim(),
-    sr: Date.now()
-  };
-
-  if(editId){
-    db.collection("vehicles").doc(editId).update(v)
-      .then(() => toast('Vehicle updated','success'));
-  } else {
-    db.collection("vehicles").add(v)
-      .then(() => toast('Vehicle added','success'));
-  }
-
-  closeEdit();
+// ✅ ADD DATA
+function addVehicle(){
+  db.collection("vehicles").add({
+    plate: "TEST-" + Math.floor(Math.random()*1000)
+  });
 }
-
-// ========================
-// ✅ DELETE VEHICLE
-// ========================
-function doDel(){
-  if(!delId) return;
-
-  db.collection("vehicles").doc(delId).delete()
-    .then(()=>{
-      toast('Vehicle deleted','info');
-    });
-
-  closeConf();
-  closeDet();
-}
-
-// ========================
-// ✅ START APP
-// ========================
-loadFromDB();
 </script>
+
+</body>
+</html>
